@@ -37,10 +37,10 @@ impl Character {
 
     pub fn to_char(self) -> char {
         match self {
-            Character::Name(name) => name.to_char(),
             Character::Placeholder => '.',
             Character::Zero => '0',
             Character::One  => '1',
+            Character::Name(name) => name.to_char(),
         }
     }
 }
@@ -48,17 +48,23 @@ impl Character {
 pub struct Characters(Vec<Character>);
 
 impl Characters {
-    // TODO: Make this work with base 16 literals.
     pub fn from_str(text: &str, base: Base) -> Characters {
-        let characters: Result<Vec<Character>, String> = text.chars()
+        let characters: Vec<Character> = text.chars()
             // Spaces are only for human-readability.
             .filter(|&c| c != ' ')
-            .map(Character::from_char)
-            .collect();
-
-        let characters: Vec<Character> = characters.unwrap().into_iter()
             // Each template char needs to be repeated if we aren't working in base 2.
-            .flat_map(|c| std::iter::repeat(c).take(base.bits_per_digit()))
+            .flat_map(|c| {
+                let characters: Box<dyn Iterator<Item = Character>>;
+                if let Ok(character) = Character::from_char(c) {
+                    characters = Box::new(std::iter::repeat(character).take(base.bits_per_digit()));
+                } else if let Some(array) = Characters::hex_digit_to_array(c) {
+                    characters = Box::new(array.into_iter());
+                } else {
+                    panic!("Invalid template char '{c}'.");
+                }
+
+                characters
+            })
             .collect();
 
         assert!(characters.len() <= 128);
@@ -95,6 +101,23 @@ impl Characters {
 
     pub fn iter(&self) -> impl DoubleEndedIterator<Item=&Character> {
         self.0.iter().clone()
+    }
+
+    fn hex_digit_to_array(digit: char) -> Option<[Character; 4]> {
+        let n;
+        if digit >= '0' && digit <= '9' {
+            n = digit as u32 - '0' as u32;
+        } else if digit >= 'A' && digit <= 'F' {
+            n = digit as u32 - 'A' as u32 + 0xA;
+        } else {
+            return None;
+        }
+
+        fn conv(value: u32) -> Character {
+            if value == 0 { Character::Zero } else { Character::One }
+        }
+
+        Some([conv(n & 0b1000), conv(n & 0b0100), conv(n & 0b0010), conv(n & 0b0001)])
     }
 }
 
