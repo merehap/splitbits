@@ -1,0 +1,17 @@
+[package]
+name = "splitbits"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+itertools = "0.13.0"
+proc-macro2 = "1.0"
+quote = "1.0.36"
+syn = "2.0.66"
+
+[dev-dependencies]
+# ux is only implicitly used in the code, but is explicit in the tests.
+ux = "0.1.6"
