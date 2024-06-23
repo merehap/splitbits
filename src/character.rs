@@ -55,10 +55,15 @@ impl Characters {
             // Each template char needs to be repeated if we aren't working in base 2.
             .flat_map(|c| {
                 let characters: Box<dyn Iterator<Item = Character>>;
+                if base == Base::Hexadecimal {
+                    if let Some(array) = Characters::hex_digit_to_array(c) {
+                        characters = Box::new(array.into_iter());
+                        return characters;
+                    }
+                }
+
                 if let Ok(character) = Character::from_char(c) {
                     characters = Box::new(std::iter::repeat(character).take(base.bits_per_digit()));
-                } else if let Some(array) = Characters::hex_digit_to_array(c) {
-                    characters = Box::new(array.into_iter());
                 } else {
                     panic!("Invalid template char '{c}'.");
                 }

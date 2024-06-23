@@ -1,4 +1,4 @@
-#[derive(Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum Base {
     Binary,
     Hexadecimal,

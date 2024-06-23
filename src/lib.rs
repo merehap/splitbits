@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 extern crate proc_macro;
 
 mod base;
@@ -112,35 +114,12 @@ pub fn onehexfield_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream
 
 #[proc_macro]
 pub fn splitbits_then_combine(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let base = Base::Binary;
-    let precision = Precision::Standard;
+    split_then_combine_base(input, Base::Binary)
+}
 
-    let parts = Parser::parse2(
-        Punctuated::<Expr, Token![,]>::parse_terminated,
-        input.clone().into(),
-    ).unwrap();
-    let parts: Vec<Expr> = parts.into_iter().collect();
-    assert!(parts.len() >= 3);
-    assert!(parts.len() % 2 == 1);
-
-    let mut fields = Vec::new();
-    for i in 0..parts.len() / 2 {
-        let value = parts[2 * i].clone();
-        let template = Template::from_expr(&parts[2 * i + 1], base, precision);
-        fields = Field::merge(fields, template.extract_fields(&value));
-    }
-
-    let expr = &parts[parts.len() - 1];
-    let target = Template::from_expr(expr, base, precision);
-    if target.has_placeholders() {
-        let bad_template = Template::template_string(expr);
-        panic!(
-            "Target template ({bad_template}) must not have placeholders (periods) in it. Use literals instead as appropriate.",
-        );
-    }
-
-    let result = target.substitute_fields(fields);
-    result.into()
+#[proc_macro]
+pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    split_then_combine_base(input, Base::Hexadecimal)
 }
 
 fn splitbits_base(input: proc_macro::TokenStream, base: Base, precision: Precision) -> proc_macro::TokenStream {
@@ -195,6 +174,37 @@ fn onefield_base(input: proc_macro::TokenStream, base: Base, precision: Precisio
     let fields = template.extract_fields(&value);
     assert_eq!(fields.len(), 1);
     fields[0].to_token_stream().into()
+}
+
+fn split_then_combine_base(input: proc_macro::TokenStream, base: Base) -> proc_macro::TokenStream {
+    const PRECISION: Precision = Precision::Standard;
+
+    let parts = Parser::parse2(
+        Punctuated::<Expr, Token![,]>::parse_terminated,
+        input.clone().into(),
+    ).unwrap();
+    let parts: Vec<Expr> = parts.into_iter().collect();
+    assert!(parts.len() >= 3);
+    assert!(parts.len() % 2 == 1);
+
+    let mut fields = Vec::new();
+    for i in 0..parts.len() / 2 {
+        let value = parts[2 * i].clone();
+        let template = Template::from_expr(&parts[2 * i + 1], base, PRECISION);
+        fields = Field::merge(fields, template.extract_fields(&value));
+    }
+
+    let expr = &parts[parts.len() - 1];
+    let target = Template::from_expr(expr, base, PRECISION);
+    if target.has_placeholders() {
+        let bad_template = Template::template_string(expr);
+        panic!(
+            "Target template ({bad_template}) must not have placeholders (periods) in it. Use literals instead as appropriate.",
+        );
+    }
+
+    let result = target.substitute_fields(fields);
+    result.into()
 }
 
 fn parse_input(item: TokenStream, base: Base, precision: Precision) -> (Expr, Template) {
