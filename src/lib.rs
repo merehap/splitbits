@@ -23,8 +23,9 @@ use crate::template::Template;
 use crate::r#type::Precision;
 
 // TODO:
-// * Implement combinebits.
-// * combinebits_hexadecimal
+// * Enable specifying overflow behavior in combinebits.
+// * Add splitbits_capture.
+// * Add build-your-own splitbits with other Bases.
 // * Allow const variable templates.
 // * Allow passing minimum variable size.
 // * Allow non-const variable templates (as a separate macro?).
@@ -113,6 +114,16 @@ pub fn onehexfield_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream
 }
 
 #[proc_macro]
+pub fn combinebits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    combinebits_base(input, Base::Binary)
+}
+
+#[proc_macro]
+pub fn combinehex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    combinebits_base(input, Base::Hexadecimal)
+}
+
+#[proc_macro]
 pub fn splitbits_then_combine(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     split_then_combine_base(input, Base::Binary)
 }
@@ -174,6 +185,18 @@ fn onefield_base(input: proc_macro::TokenStream, base: Base, precision: Precisio
     let fields = template.extract_fields(&value);
     assert_eq!(fields.len(), 1);
     fields[0].to_token_stream().into()
+}
+
+fn combinebits_base(input: proc_macro::TokenStream, base: Base) -> proc_macro::TokenStream {
+    let parts = Parser::parse2(
+        Punctuated::<Expr, Token![,]>::parse_terminated,
+        input.clone().into(),
+    ).unwrap();
+    let parts: Vec<Expr> = parts.into_iter().collect();
+    assert_eq!(parts.len(), 1);
+
+    let template = Template::from_expr(&parts[0], base, Precision::Ux);
+    template.combine_variables().into()
 }
 
 fn split_then_combine_base(input: proc_macro::TokenStream, base: Base) -> proc_macro::TokenStream {

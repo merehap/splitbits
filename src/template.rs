@@ -65,6 +65,26 @@ impl Template {
             .collect()
     }
 
+    pub fn combine_variables(&self) -> TokenStream {
+        let t = self.input_type.to_ident();
+        let mut field_streams = Vec::new();
+        for (name, locations) in &self.locations_by_name {
+            assert_eq!(locations.len(), 1);
+            let name = name.to_ident();
+            let shift = locations[0].mask_offset();
+            let field = quote! { #t::try_from(#name).unwrap() << #shift };
+            field_streams.push(field);
+        }
+
+        let mut literal_quote = quote! {};
+        if let Some(literal) = self.characters.extract_literal() {
+            let t = self.input_type.to_ident();
+            literal_quote = quote! { | (#literal as #t) };
+        }
+
+        quote! { (#(#field_streams)|*) #literal_quote }
+    }
+
     // WRONG ASSUMPTIONS:
     // * Each name only has a single segment.
     pub fn substitute_fields(&self, fields: Vec<Field>) -> TokenStream {

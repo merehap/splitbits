@@ -1,7 +1,7 @@
 extern crate splitbits;
 
 use splitbits::*;
-use ux::{u2, u9, u19};
+use ux::{u1, u4, u2, u7, u9, u12, u19};
 
 #[test]
 fn u8() {
@@ -342,6 +342,51 @@ fn ux_other() {
         0x2001_0db8_85a3_0000_0000_8a2e_0370_7334,
          "aaaa .... .... .... .... .... .... ....",
     );
+}
+
+#[test]
+fn combine_trivial() {
+    let a: u16 = 0b1010_0101_0000_1111;
+    let result = combinebits!("aaaa aaaa aaaa aaaa");
+    assert_eq!(result, a);
+}
+
+#[test]
+fn combine_two() {
+    let a: u8 = 0b1010_0101;
+    let b: u8 = 0b0000_1111;
+    let result = combinebits!("aaaa aaaa bbbb bbbb");
+    assert_eq!(result, 0b1010_0101_0000_1111u16);
+}
+
+#[test]
+fn combine_different_sizes() {
+    let a = true;
+    let b: u8 = 0b00_1111;
+    let c: u16 = 0b1_0101_0101_0101;
+    let d: u64 = 0b1000_1000_1000_1000_1000_1000_1000_1000_1000_1000;
+    let result = combinebits!("cccc cccc cccc cabb bbbb 1011 dddd dddd dddd dddd dddd dddd dddd dddd dddd dddd");
+    assert_eq!(result,       0b1010_1010_1010_1100_1111_1011_1000_1000_1000_1000_1000_1000_1000_1000_1000_1000u64);
+}
+
+#[test]
+fn combine_ux() {
+    let a = true;
+    let b = u1::new(1);
+    let c = u7::new(0b000_0000);
+    let d: u8 = 0b00_1111;
+    let e = u9::new(0b1_0101_0101);
+    let result = combinebits!("0000 0000 0000 1a0b ccdd ddde eeee eeee");
+    assert_eq!(result,       0b0000_0000_0000_1101_0001_1111_0101_0101);
+}
+
+#[test]
+fn combine_hex() {
+    let a = u4::new(0xA);
+    let b: u8 = 0xF0;
+    let c = u12::new(0xEEE);
+    let result = combinehex!("a1bbDccc");
+    assert_eq!(result,      0xA1F0DEEE);
 }
 
 #[test]
