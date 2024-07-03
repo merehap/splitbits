@@ -30,6 +30,7 @@ use crate::r#type::Precision;
 // * Allow passing minimum variable size.
 // * Allow non-const variable templates (as a separate macro?).
 // * Better error messages.
+// ** Calling splitbits with hex values should give a tailored message.
 // * Remove itertools dependency.
 // * Allow non-standard template lengths.
 // * Tests that confirm non-compilation cases.
@@ -54,63 +55,43 @@ pub fn splithex_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 }
 
 #[proc_macro]
-pub fn splitbits_tuple(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    splitbits_tuple_base(input, Base::Binary, Precision::Standard)
+pub fn splitbits_named(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    splitbits_named_base(input, Base::Binary, Precision::Standard)
 }
 
 #[proc_macro]
-pub fn splitbits_tuple_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    splitbits_tuple_base(input, Base::Binary, Precision::Ux)
+pub fn splitbits_named_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    splitbits_named_base(input, Base::Binary, Precision::Ux)
 }
 
 #[proc_macro]
-pub fn splithex_tuple(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    splitbits_tuple_base(input, Base::Hexadecimal, Precision::Standard)
+pub fn splithex_named(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    splitbits_named_base(input, Base::Hexadecimal, Precision::Standard)
 }
 
 #[proc_macro]
-pub fn splithex_tuple_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    splitbits_tuple_base(input, Base::Hexadecimal, Precision::Ux)
+pub fn splithex_named_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    splitbits_named_base(input, Base::Hexadecimal, Precision::Ux)
 }
 
 #[proc_macro]
-pub fn splitbits_tuple_into(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    splitbits_tuple_into_base(input, Base::Binary, Precision::Standard)
+pub fn splitbits_named_into(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    splitbits_named_into_base(input, Base::Binary, Precision::Standard)
 }
 
 #[proc_macro]
-pub fn splitbits_tuple_into_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    splitbits_tuple_into_base(input, Base::Binary, Precision::Ux)
+pub fn splitbits_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    splitbits_named_into_base(input, Base::Binary, Precision::Ux)
 }
 
 #[proc_macro]
-pub fn splithex_tuple_into(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    splitbits_tuple_into_base(input, Base::Hexadecimal, Precision::Standard)
+pub fn splithex_named_into(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    splitbits_named_into_base(input, Base::Hexadecimal, Precision::Standard)
 }
 
 #[proc_macro]
-pub fn splithex_tuple_into_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    splitbits_tuple_into_base(input, Base::Hexadecimal, Precision::Ux)
-}
-
-#[proc_macro]
-pub fn onefield(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    onefield_base(input, Base::Binary, Precision::Standard)
-}
-
-#[proc_macro]
-pub fn onefield_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    onefield_base(input, Base::Binary, Precision::Ux)
-}
-
-#[proc_macro]
-pub fn onehexfield(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    onefield_base(input, Base::Hexadecimal, Precision::Standard)
-}
-
-#[proc_macro]
-pub fn onehexfield_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    onefield_base(input, Base::Hexadecimal, Precision::Ux)
+pub fn splithex_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    splitbits_named_into_base(input, Base::Hexadecimal, Precision::Ux)
 }
 
 #[proc_macro]
@@ -156,35 +137,34 @@ fn splitbits_base(input: proc_macro::TokenStream, base: Base, precision: Precisi
     result.into()
 }
 
-fn splitbits_tuple_base(input: proc_macro::TokenStream, base: Base, precision: Precision) -> proc_macro::TokenStream {
+fn splitbits_named_base(input: proc_macro::TokenStream, base: Base, precision: Precision) -> proc_macro::TokenStream {
     let (value, template) = parse_input(input.into(), base, precision);
     let fields = template.extract_fields(&value);
     let values: Vec<TokenStream> = fields.iter().map(|field| field.to_token_stream()).collect();
 
-    let result = quote! {
-        (#(#values,)*)
+    let result = match &values[..] {
+        // Single value
+        [value] => quote! { #value },
+        // Tuple
+        _ => quote! { (#(#values,)*) },
     };
 
     result.into()
 }
 
-fn splitbits_tuple_into_base(input: proc_macro::TokenStream, base: Base, precision: Precision) -> proc_macro::TokenStream {
+fn splitbits_named_into_base(input: proc_macro::TokenStream, base: Base, precision: Precision) -> proc_macro::TokenStream {
     let (value, template) = parse_input(input.into(), base, precision);
     let fields = template.extract_fields(&value);
     let values: Vec<TokenStream> = fields.iter().map(|field| field.to_token_stream()).collect();
 
-    let result = quote! {
-        (#((#values).into(),)*)
+    let result = match &values[..] {
+        // Single value
+        [value] => quote! { #value.into() },
+        // Tuple
+        _ => quote! { (#((#values).into(),)*) },
     };
 
     result.into()
-}
-
-fn onefield_base(input: proc_macro::TokenStream, base: Base, precision: Precision) -> proc_macro::TokenStream {
-    let (value, template) = parse_input(input.into(), base, precision);
-    let fields = template.extract_fields(&value);
-    assert_eq!(fields.len(), 1);
-    fields[0].to_token_stream().into()
 }
 
 fn combinebits_base(input: proc_macro::TokenStream, base: Base) -> proc_macro::TokenStream {

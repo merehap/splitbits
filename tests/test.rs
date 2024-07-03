@@ -184,7 +184,7 @@ fn u128() {
 
 #[test]
 fn onefield() {
-    let field = onefield!(
+    let field = splitbits_named!(
         0b1101_1101_1000_0100_0000_0000_1111_1001,
          ".... bbbb bbbb bbbb bbbb bbb. .... ....",
     );
@@ -193,8 +193,8 @@ fn onefield() {
 }
 
 #[test]
-fn tuple() {
-    let (greatest, of, all, time) = splitbits_tuple!(
+fn named() {
+    let (greatest, of, all, time) = splitbits_named!(
         0b1101110111110001,
          "aaaaaaaaadddefff",
     );
@@ -205,8 +205,8 @@ fn tuple() {
 }
 
 #[test]
-fn tuple_preserve_ordering() {
-    let (greatest, of, all, time) = splitbits_tuple!(0b1000_1011, "bdda.cc.");
+fn named_preserve_ordering() {
+    let (greatest, of, all, time) = splitbits_named!(0b1000_1011, "bdda.cc.");
     assert_eq!(greatest, true);
     assert_eq!(of, 0b00u8);
     assert_eq!(all, false);
@@ -214,9 +214,9 @@ fn tuple_preserve_ordering() {
 }
 
 #[test]
-fn tuple_existing_variables() {
+fn named_existing_variables() {
     let greatest; let of; let all; let time;
-    (greatest, of, all, time) = splitbits_tuple!(
+    (greatest, of, all, time) = splitbits_named!(
         0b1101110111110001,
          "aaaaaaaaadddefff",
     );
@@ -227,9 +227,9 @@ fn tuple_existing_variables() {
 }
 
 #[test]
-fn tuple_existing_types() {
+fn named_existing_types() {
     let greatest: u128; let of: u8; let all: u32; let time: u16;
-    (greatest, of, all, time) = splitbits_tuple_into!(
+    (greatest, of, all, time) = splitbits_named_into!(
         0b1101110111110001,
          "aaaaaaaaadddefff",
     );
@@ -238,7 +238,7 @@ fn tuple_existing_types() {
     assert_eq!(all, 0u32);
     assert_eq!(time, 0b001u16);
 
-    let (greatest, of, all, time): (u128, u8, u32, u16) = splitbits_tuple_into!(
+    let (greatest, of, all, time): (u128, u8, u32, u16) = splitbits_named_into!(
         0b1101110111110001,
          "aaaaaaaaadddefff",
     );
@@ -268,9 +268,9 @@ fn hex() {
 }
 
 #[test]
-fn hex_tuple() {
+fn hex_named() {
     // IPV6
-    let (everybody, wants, to, rule, the, world) = splithex_tuple!(
+    let (everybody, wants, to, rule, the, world) = splithex_named!(
         0x2001_0db8_85a3_0000_0000_8a2e_0370_7334,
          "aaaa bbbb cccc .... eeee ffff hhhh hhhh",
     );
@@ -283,10 +283,10 @@ fn hex_tuple() {
 }
 
 #[test]
-fn hex_tuple_into() {
+fn hex_named_into() {
     // IPV6
     let (everybody, wants, to, rule, the, world): (u16, u128, u8, u32, u128, u64) =
-        splithex_tuple_into!(
+        splithex_named_into!(
             0x2101_0db8_85a3_0000_0000_8a2e_0370_7334,
              "abbb bbbb bbbb bbbb bbbe ffff ffff hhii",
         );
@@ -301,7 +301,7 @@ fn hex_tuple_into() {
 #[test]
 fn onehex() {
     // IPV6
-    let value = onehexfield!(
+    let value = splithex_named!(
         0x2001_0db8_85a3_0000_0000_8a2e_0370_7334,
          ".... bbbb .... .... .... .... .... ....",
     );
@@ -330,15 +330,15 @@ fn ux_other() {
         0x2001_0db8_85a3_0000_0000_8a2e_0370_7334,
          "aaaa bbbb cccc .... .... .... dddd ....",
     );
-    let (_, _, _, _) = splithex_tuple_ux!(
+    let (_, _, _, _) = splithex_named_ux!(
         0x2001_0db8_85a3_0000_0000_8a2e_0370_7334,
          "aaaa bbbb cccc .... .... .... dddd ....",
     );
-    let (_, _, _, _) : (u16, u32, u64, u128) = splithex_tuple_into_ux!(
+    let (_, _, _, _) : (u16, u32, u64, u128) = splithex_named_into_ux!(
         0x2001_0db8_85a3_0000_0000_8a2e_0370_7334,
          "aaaa bbbb cccc .... .... .... dddd ....",
     );
-    let _ = onehexfield_ux!(
+    let _ = splithex_named_ux!(
         0x2001_0db8_85a3_0000_0000_8a2e_0370_7334,
          "aaaa .... .... .... .... .... .... ....",
     );
