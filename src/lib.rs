@@ -173,10 +173,14 @@ fn combinebits_base(input: proc_macro::TokenStream, base: Base) -> proc_macro::T
         input.clone().into(),
     ).unwrap();
     let parts: Vec<Expr> = parts.into_iter().collect();
-    assert_eq!(parts.len(), 1);
-
-    let template = Template::from_expr(&parts[0], base, Precision::Ux);
-    template.combine_variables().into()
+    if parts.len() == 1 {
+        let template = Template::from_expr(&parts[0], base, Precision::Ux);
+        template.combine_variables().into()
+    } else {
+        let template = Template::from_expr(&parts[parts.len() - 1], base, Precision::Ux);
+        // Everything except the last argument is an input variable.
+        template.combine_with(&parts[0..parts.len() - 1]).into()
+    }
 }
 
 fn split_then_combine_base(input: proc_macro::TokenStream, base: Base) -> proc_macro::TokenStream {

@@ -390,6 +390,18 @@ fn combine_hex() {
 }
 
 #[test]
+fn combine_arguments() {
+    let first: u16 = 0b1_0101_0101_0101;
+    let second = true;
+    let third: u8 = 0b00_1111;
+    let fourth: u64 = 0b1000_1000_1000_1000_1000_1000_1000_1000_1000_1000;
+    let result = combinebits!(
+        first, second, third, fourth,
+        "cccc cccc cccc cabb bbbb 1011 dddd dddd dddd dddd dddd dddd dddd dddd dddd dddd");
+    assert_eq!(result,       0b1010_1010_1010_1100_1111_1011_1000_1000_1000_1000_1000_1000_1000_1000_1000_1000u64);
+}
+
+#[test]
 fn split_then_combine_trivial() {
     let result = splitbits_then_combine!(0b1001_1011, "aaaa aaaa", "aaaa aaaa");
     assert_eq!(result, 0b1001_1011u8);
