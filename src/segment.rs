@@ -49,7 +49,7 @@ impl Segment {
             Ordering::Less => quote! { << #shift },
         };
 
-        let t = self.t.to_ident();
+        let t = self.t.to_token_stream();
         let mask = self.location.to_mask();
         quote! { (#input as #t & #mask as #t) #shifter }
     }

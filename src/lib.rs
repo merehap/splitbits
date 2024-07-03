@@ -139,7 +139,7 @@ fn splitbits_base(input: proc_macro::TokenStream, base: Base, precision: Precisi
 
     let struct_name = template.to_struct_name();
     let names: Vec<_> = fields.iter().map(|field| field.name().to_ident()).collect();
-    let types: Vec<_> = fields.iter().map(|field| field.t().to_ident()).collect();
+    let types: Vec<_> = fields.iter().map(|field| field.t().to_token_stream()).collect();
     let values: Vec<TokenStream> = fields.iter().map(|field| field.to_token_stream()).collect();
     let result = quote! {
         {

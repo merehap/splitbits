@@ -1,7 +1,7 @@
 use std::fmt;
 
-use proc_macro2::Ident;
-use quote::format_ident;
+use proc_macro2::TokenStream;
+use quote::{quote, format_ident};
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct Type(u8);
@@ -38,8 +38,12 @@ impl Type {
         Type::for_field(self.0 + other.0, Precision::Standard)
     }
 
-    pub fn to_ident(self) -> Ident {
-        format_ident!("{}", format!("{}", self))
+    pub fn to_token_stream(self) -> TokenStream {
+        let ident = format_ident!("{}", self.to_string());
+        match self.0 {
+            1 | 8 | 16 | 32 | 64 | 128 => quote! { #ident },
+            _ => quote! { ux::#ident },
+        }
     }
 }
 
