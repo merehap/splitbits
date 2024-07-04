@@ -126,7 +126,6 @@ pub fn replacebits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
     let (value, template) = parse_input(input.into(), Base::Binary, Precision::Standard);
     let result = template.replace(&value);
-    println!("{result}");
     result.into()
 }
 
