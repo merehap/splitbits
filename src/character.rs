@@ -89,7 +89,7 @@ impl Characters {
 
     pub fn literal_mask(&self) -> u128 {
         let literal_string: String = self.0.iter()
-            .map(|&c| if c == Character::One { '1' } else { '0' })
+            .map(|&c| if c == Character::Zero || c == Character::One { '1' } else { '0' })
             .collect();
         u128::from_str_radix(&literal_string, 2).unwrap()
     }

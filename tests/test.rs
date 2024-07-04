@@ -485,6 +485,6 @@ fn replace() {
     let b = 0b00001u8;
     let c = 0b0101u128;
     let d = false;
-    let result = replacebits!(0b1001_1010_1111_1111u16, "aaab bbbb .d.. cccc");
-    assert_eq!(result,        0b1010_0001_1011_0101u16);
+    let result = replacebits!(0b1001_1010_1100_1111u16, "aaab bbbb .d.. cccc");
+    assert_eq!(result,        0b1010_0001_1000_0101u16);
 }
