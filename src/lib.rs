@@ -34,6 +34,8 @@ use crate::r#type::Precision;
 // * Remove itertools dependency.
 // * Allow non-standard template lengths.
 // * Tests that confirm non-compilation cases.
+// * splitbits_named_into isn't into-ing.
+// * All replacebits variants.
 #[proc_macro]
 pub fn splitbits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     splitbits_base(input, Base::Binary, Precision::Standard)
@@ -112,6 +114,20 @@ pub fn splitbits_then_combine(input: proc_macro::TokenStream) -> proc_macro::Tok
 #[proc_macro]
 pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     split_then_combine_base(input, Base::Hexadecimal)
+}
+
+#[proc_macro]
+pub fn replacebits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    /*
+     * self.address &= 0b1111_1111_0000_0000;
+     * self.address |= u16::from(value);
+    */
+    // replacebits!(self.address, ".... .... vvvv vvvv");
+
+    let (value, template) = parse_input(input.into(), Base::Binary, Precision::Standard);
+    let result = template.replace(&value);
+    println!("{result}");
+    result.into()
 }
 
 fn splitbits_base(input: proc_macro::TokenStream, base: Base, precision: Precision) -> proc_macro::TokenStream {

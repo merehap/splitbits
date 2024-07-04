@@ -105,6 +105,30 @@ impl Template {
         quote! { (#(#field_streams)|*) #literal_quote }
     }
 
+    pub fn replace(&self, target: &Expr) -> TokenStream {
+        let t = self.input_type.to_token_stream();
+        let mut mask = 0u128;
+        let mut replacements = Vec::new();
+        for (name, locations) in &self.locations_by_name {
+            assert_eq!(locations.len(), 1);
+            let name = name.to_ident();
+            let shift = locations[0].mask_offset();
+            let field = quote! { #t::try_from(#name).unwrap() << #shift };
+            replacements.push(field);
+            mask |= locations[0].to_mask();
+        }
+
+        let mut literal_quote = quote! {};
+        if let Some(literal) = self.characters.extract_literal() {
+            mask |= self.characters.literal_mask();
+            let t = self.input_type.to_token_stream();
+            literal_quote = quote! { | (#literal as #t) };
+        }
+
+        let mask = !mask;
+        quote! { (#target & #mask as #t) | (#(#replacements)|*) #literal_quote }
+    }
+
     // WRONG ASSUMPTIONS:
     // * Each name only has a single segment.
     pub fn substitute_fields(&self, fields: Vec<Field>) -> TokenStream {

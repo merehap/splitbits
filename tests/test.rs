@@ -478,3 +478,13 @@ fn splithex_then_combine_with_literals() {
     println!("{:X}", 0x67AB_5C01_2DEF_BC01_2345_6789_0000_8843u128);
     assert_eq!(result, 0x67AB_5C01_2DEF_BC01_2345_6789_0000_8843);
 }
+
+#[test]
+fn replace() {
+    let a = 0b101u16;
+    let b = 0b00001u8;
+    let c = 0b0101u128;
+    let d = false;
+    let result = replacebits!(0b1001_1010_1111_1111u16, "aaab bbbb .d.. cccc");
+    assert_eq!(result,        0b1010_0001_1011_0101u16);
+}
