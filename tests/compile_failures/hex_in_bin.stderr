@@ -1,0 +1,23 @@
+error: proc macro panicked
+ --> tests/compile_failures/hex_in_bin.rs:9:5
+  |
+9 |     combinebits!("ddAB cCbb bDEF aa01 2345 6789 eeee eeee");
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: Invalid characters for base 2 detected: ['2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F']. Did you mean to use a higher base?
+
+error: proc macro panicked
+  --> tests/compile_failures/hex_in_bin.rs:10:5
+   |
+10 |     combinebits!("ddAB cCbb bDEF aa01 0000 0000 eeee eeee");
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: message: Invalid characters for base 2 detected: ['A', 'B', 'C', 'D', 'E', 'F']. Did you mean to use a higher base?
+
+error: proc macro panicked
+  --> tests/compile_failures/hex_in_bin.rs:11:5
+   |
+11 |     combinebits!("dd00 c0bb b000 aa01 2345 6789 eeee eeee");
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: message: Invalid characters for base 2 detected: ['2', '3', '4', '5', '6', '7', '8', '9']. Did you mean to use a higher base?

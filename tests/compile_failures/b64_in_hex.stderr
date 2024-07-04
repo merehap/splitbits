@@ -1,0 +1,7 @@
+error: proc macro panicked
+ --> tests/compile_failures/b64_in_hex.rs:9:5
+  |
+9 |     combinehex!("ddAB cCbb bDEF aaH1 XY45 6789 eeee eeee");
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: Invalid characters for base 16 detected: ['H', 'X', 'Y']. Did you mean to use a higher base?

@@ -24,18 +24,21 @@ use crate::r#type::Precision;
 
 // TODO:
 // * Enable specifying overflow behavior in combinebits.
-// * Add splitbits_capture.
-// * Add build-your-own splitbits with other Bases.
-// * Allow const variable templates.
+// ** Ensure usability in const contexts.
 // * Allow passing minimum variable size.
-// * Allow non-const variable templates (as a separate macro?).
 // * Better error messages.
-// ** Calling splitbits with hex values should give a tailored message.
-// * Remove itertools dependency.
-// * Allow non-standard template lengths.
 // * Tests that confirm non-compilation cases.
 // * splitbits_named_into isn't into-ing.
-// * Ensure usability in const contexts.
+// * Support splitting inputs across multiple output segments.
+// After 0.1.0:
+// * Add base 8, base 32, and base 64.
+// ** Add build-your-own splitbits with other Bases.
+// * Enable splitbits to fail if literal pattern not matched
+// * Allow const variable templates.
+// * Allow non-const variable templates (as a separate macro).
+// * Allow non-standard template lengths.
+// * Add splitbits_capture.
+
 #[proc_macro]
 pub fn splitbits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     splitbits_base(input, Base::Binary, Precision::Standard)
@@ -137,7 +140,7 @@ pub fn replacehex_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
 }
 
 fn splitbits_base(input: proc_macro::TokenStream, base: Base, precision: Precision) -> proc_macro::TokenStream {
-    let (value, template) = parse_input(input.into(), base, precision);
+    let (value, template) = parse_input(input.into(), base, precision, LiteralsAllowed::No);
     let fields = template.extract_fields(&value);
 
     let struct_name = template.to_struct_name();
@@ -160,7 +163,7 @@ fn splitbits_base(input: proc_macro::TokenStream, base: Base, precision: Precisi
 }
 
 fn splitbits_named_base(input: proc_macro::TokenStream, base: Base, precision: Precision) -> proc_macro::TokenStream {
-    let (value, template) = parse_input(input.into(), base, precision);
+    let (value, template) = parse_input(input.into(), base, precision, LiteralsAllowed::No);
     let fields = template.extract_fields(&value);
     let values: Vec<TokenStream> = fields.iter().map(|field| field.to_token_stream()).collect();
 
@@ -175,7 +178,7 @@ fn splitbits_named_base(input: proc_macro::TokenStream, base: Base, precision: P
 }
 
 fn splitbits_named_into_base(input: proc_macro::TokenStream, base: Base, precision: Precision) -> proc_macro::TokenStream {
-    let (value, template) = parse_input(input.into(), base, precision);
+    let (value, template) = parse_input(input.into(), base, precision, LiteralsAllowed::No);
     let fields = template.extract_fields(&value);
     let values: Vec<TokenStream> = fields.iter().map(|field| field.to_token_stream()).collect();
 
@@ -237,12 +240,12 @@ fn split_then_combine_base(input: proc_macro::TokenStream, base: Base) -> proc_m
 }
 
 fn replacebits_base(input: proc_macro::TokenStream, base: Base, precision: Precision) -> proc_macro::TokenStream {
-    let (value, template) = parse_input(input.into(), base, precision);
+    let (value, template) = parse_input(input.into(), base, precision, LiteralsAllowed::Yes);
     let result = template.replace(&value);
     result.into()
 }
 
-fn parse_input(item: TokenStream, base: Base, precision: Precision) -> (Expr, Template) {
+fn parse_input(item: TokenStream, base: Base, precision: Precision, literals_allowed: LiteralsAllowed) -> (Expr, Template) {
     let parts = Parser::parse2(
         Punctuated::<Expr, Token![,]>::parse_terminated,
         item.clone().into(),
@@ -250,7 +253,21 @@ fn parse_input(item: TokenStream, base: Base, precision: Precision) -> (Expr, Te
     let parts: Vec<Expr> = parts.into_iter().collect();
     assert_eq!(parts.len(), 2);
 
+    if literals_allowed == LiteralsAllowed::No {
+        let template_string = Template::template_string(&parts[1]);
+        for c in template_string.chars() {
+            assert!(!c.is_numeric() && !c.is_ascii_uppercase(),
+                "Literals not allowed in this context, but found '{c}' in '{template_string}'.");
+        }
+    }
+
     let value = parts[0].clone();
     let template = Template::from_expr(&parts[1], base, precision);
     (value, template)
+}
+
+#[derive(PartialEq, Eq)]
+enum LiteralsAllowed {
+    No,
+    Yes,
 }

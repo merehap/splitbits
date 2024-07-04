@@ -494,3 +494,9 @@ fn replacehex_ux() {
     let result = replacehex!(0xABCD_EF01_2345_6789, "0a.. cc.b bbbb bb1D");
     assert_eq!(result,       0x0ECD_2A09_0210_AB1Du64);
 }
+
+#[test]
+fn compile_failures() {
+    let t = trybuild::TestCases::new();
+    t.compile_fail("tests/compile_failures/*.rs");
+}

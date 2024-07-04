@@ -65,14 +65,14 @@ impl Characters {
                 if let Ok(character) = Character::from_char(c) {
                     characters = Box::new(std::iter::repeat(character).take(base.bits_per_digit()));
                 } else {
-                    panic!("Invalid template char '{c}'.");
+                    panic!("Invalid template char '{c}' in template '{text}'.");
                 }
 
                 characters
             })
             .collect();
 
-        assert!(characters.len() <= 128);
+        assert!(characters.len() <= 128, "Template size was greater than 128 bits. Template: '{text}'");
         Characters(characters)
     }
 
@@ -116,14 +116,11 @@ impl Characters {
     }
 
     fn hex_digit_to_array(digit: char) -> Option<[Character; 4]> {
-        let n;
-        if digit >= '0' && digit <= '9' {
-            n = digit as u32 - '0' as u32;
-        } else if digit >= 'A' && digit <= 'F' {
-            n = digit as u32 - 'A' as u32 + 0xA;
-        } else {
-            return None;
-        }
+        let n = match digit {
+            '0'..='9' => digit as u32 - '0' as u32,
+            'A'..='F' => digit as u32 - 'A' as u32 + 0xA,
+            _ => return None,
+        };
 
         fn conv(value: u32) -> Character {
             if value == 0 { Character::Zero } else { Character::One }

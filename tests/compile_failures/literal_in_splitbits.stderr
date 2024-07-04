@@ -1,0 +1,31 @@
+error: proc macro panicked
+ --> tests/compile_failures/literal_in_splitbits.rs:4:5
+  |
+4 |     splitbits!(0b1111_0000, "aaa. 0bbb");
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: Literals not allowed in this context, but found '0' in 'aaa. 0bbb'.
+
+error: proc macro panicked
+ --> tests/compile_failures/literal_in_splitbits.rs:5:5
+  |
+5 |     splitbits!(0b1111_0000, "aaa. 1bbb");
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: Literals not allowed in this context, but found '1' in 'aaa. 1bbb'.
+
+error: proc macro panicked
+ --> tests/compile_failures/literal_in_splitbits.rs:6:5
+  |
+6 |     splitbits!(0b1111_0000, "aaa. Abbb");
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: Literals not allowed in this context, but found 'A' in 'aaa. Abbb'.
+
+error: proc macro panicked
+ --> tests/compile_failures/literal_in_splitbits.rs:7:5
+  |
+7 |     splitbits!(0b1111_0000, "aaa. Zbbb");
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: Literals not allowed in this context, but found 'Z' in 'aaa. Zbbb'.

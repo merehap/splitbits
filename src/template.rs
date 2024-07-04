@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeSet, BTreeMap};
 
 use itertools::Itertools;
 use proc_macro2::{TokenStream, Ident};
@@ -22,6 +22,7 @@ pub struct Template {
 impl Template {
     pub fn from_expr(expr: &Expr, base: Base, precision: Precision) -> Template {
         let template_string = Template::template_string(expr);
+        reject_higher_base_chars(&template_string, base);
         let characters = Characters::from_str(&template_string, base);
 
         let input_type = Type::for_template(characters.len() as u8);
@@ -88,7 +89,9 @@ impl Template {
     pub fn combine_with(&self, exprs: &[Expr]) -> TokenStream {
         let t = self.input_type.to_token_stream();
         let mut field_streams = Vec::new();
-        assert_eq!(self.locations_by_name.len(), exprs.len());
+        assert_eq!(exprs.len(), self.locations_by_name.len(),
+            "The number of inputs must be equal to the number of names in the template.",
+        );
         for ((_name, locations), expr) in self.locations_by_name.iter().zip(exprs.iter()) {
             assert_eq!(locations.len(), 1);
             let shift = locations[0].mask_offset();
@@ -161,4 +164,19 @@ impl Template {
             .replace('.', "_");
         format_ident!("{}", format!("Fields·{}", struct_name_suffix))
     }
+}
+
+// TODO: Reject base 64 special characters.
+fn reject_higher_base_chars(text: &str, base: Base) {
+    let banned_chars: BTreeSet<char> = match base {
+        Base::Binary => ('2'..='9').chain('A'..='Z').collect(),
+        Base::Hexadecimal => ('G'..='Z').collect(),
+    };
+
+    let chars: BTreeSet<char> = text.chars().collect();
+    let rejections: Vec<char> = chars.intersection(&banned_chars).cloned().collect();
+    assert!(rejections.is_empty(),
+        "Invalid characters for base {} detected: {rejections:?}. Did you mean to use a higher base?",
+        base as u8,
+    );
 }
