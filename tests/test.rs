@@ -1,7 +1,7 @@
 extern crate splitbits;
 
 use splitbits::*;
-use ux::{u1, u4, u2, u7, u9, u12, u19};
+use ux::{u1, u4, u2, u7, u9, u12, u19, u28};
 
 #[test]
 fn u8() {
@@ -473,9 +473,6 @@ fn splithex_then_combine_with_literals() {
         0xABCD_EF01_2345_6789_1900_0088_4321_9876,
          ".aa. ..bb b..c dd.. ..ee eeee ee.. ....",
          "ddAB cCbb bDEF aa01 2345 6789 eeee eeee");
-      //0x67AB_5C01_2DEF_BC01_2345_6789_0000_8843
-    println!("{:X}", result);
-    println!("{:X}", 0x67AB_5C01_2DEF_BC01_2345_6789_0000_8843u128);
     assert_eq!(result, 0x67AB_5C01_2DEF_BC01_2345_6789_0000_8843);
 }
 
@@ -487,4 +484,13 @@ fn replace() {
     let d = false;
     let result = replacebits!(0b1001_1010_1100_1111u16, "aaab bbbb .d.. cccc");
     assert_eq!(result,        0b1010_0001_1000_0101u16);
+}
+
+#[test]
+fn replacehex_ux() {
+    let a = u4::new(0xE);
+    let c: u8 = 0x2A;
+    let b = u28::new(0x90210AB);
+    let result = replacehex!(0xABCD_EF01_2345_6789, "0a.. cc.b bbbb bb1D");
+    assert_eq!(result,       0x0ECD_2A09_0210_AB1Du64);
 }

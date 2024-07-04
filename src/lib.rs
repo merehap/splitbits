@@ -35,7 +35,7 @@ use crate::r#type::Precision;
 // * Allow non-standard template lengths.
 // * Tests that confirm non-compilation cases.
 // * splitbits_named_into isn't into-ing.
-// * All replacebits variants.
+// * Ensure usability in const contexts.
 #[proc_macro]
 pub fn splitbits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     splitbits_base(input, Base::Binary, Precision::Standard)
@@ -118,15 +118,22 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
 
 #[proc_macro]
 pub fn replacebits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    /*
-     * self.address &= 0b1111_1111_0000_0000;
-     * self.address |= u16::from(value);
-    */
-    // replacebits!(self.address, ".... .... vvvv vvvv");
+    replacebits_base(input, Base::Binary, Precision::Standard)
+}
 
-    let (value, template) = parse_input(input.into(), Base::Binary, Precision::Standard);
-    let result = template.replace(&value);
-    result.into()
+#[proc_macro]
+pub fn replacehex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    replacebits_base(input, Base::Hexadecimal, Precision::Standard)
+}
+
+#[proc_macro]
+pub fn replacebits_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    replacebits_base(input, Base::Binary, Precision::Ux)
+}
+
+#[proc_macro]
+pub fn replacehex_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    replacebits_base(input, Base::Hexadecimal, Precision::Ux)
 }
 
 fn splitbits_base(input: proc_macro::TokenStream, base: Base, precision: Precision) -> proc_macro::TokenStream {
@@ -226,6 +233,12 @@ fn split_then_combine_base(input: proc_macro::TokenStream, base: Base) -> proc_m
     }
 
     let result = target.substitute_fields(fields);
+    result.into()
+}
+
+fn replacebits_base(input: proc_macro::TokenStream, base: Base, precision: Precision) -> proc_macro::TokenStream {
+    let (value, template) = parse_input(input.into(), base, precision);
+    let result = template.replace(&value);
     result.into()
 }
 
