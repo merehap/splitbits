@@ -38,7 +38,7 @@ impl Segment {
         self.clone()
     }
 
-    pub fn to_value(&self) -> TokenStream {
+    pub fn to_token_stream(&self) -> TokenStream {
         let input = &self.input;
         let ordering = self.shift.cmp(&0);
         let shift = self.shift.abs();

@@ -25,7 +25,9 @@ impl Template {
         reject_higher_base_chars(&template_string, base);
         let characters = Characters::from_str(&template_string, base);
 
-        let input_type = Type::for_template(characters.len() as u8);
+        let len: u8 = characters.len().try_into()
+            .expect("template should be under 256 characters long.");
+        let input_type = Type::for_template(len);
         let mut locations_by_name: Vec<(Name, Vec<Location>)> = Vec::new();
         for name in characters.to_names() {
             let locations: Vec<Location> = characters.iter()
@@ -66,14 +68,38 @@ impl Template {
             .collect()
     }
 
-    pub fn combine_variables(&self) -> TokenStream {
+    pub fn combine_variables(&self, on_overflow: OnOverflow) -> TokenStream {
         let t = self.input_type.to_token_stream();
         let mut field_streams = Vec::new();
         for (name, locations) in &self.locations_by_name {
             assert_eq!(locations.len(), 1);
+            let var = name.to_char();
             let name = name.to_ident();
             let shift = locations[0].mask_offset();
-            let field = quote! { #t::from(#name) << #shift };
+            let mask = locations[0].to_unshifted_mask();
+            let len = locations[0].len();
+            let field = match on_overflow {
+                OnOverflow::Corrupt  => quote! { #t::from(#name) << #shift },
+                OnOverflow::Wrap     => quote! { (#t::from(#name) & (#mask as #t)) << #shift },
+                OnOverflow::Panic    => quote! {
+                    {
+                        let n = #t::from(#name);
+                        assert!(n <= #mask as #t,
+                            "Variable {} is too big for its location in the template. {n} > {} ({} bits)", #var, #mask, #len);
+                        n << #shift
+                    }
+                },
+                OnOverflow::Saturate => quote! {
+                    {
+                        let mut n = #t::from(#name);
+                        let mask = #mask as #t;
+                        if n > mask {
+                            n = mask;
+                        }
+                        n << #shift
+                    }
+                },
+            };
             field_streams.push(field);
         }
 
@@ -165,7 +191,6 @@ impl Template {
         format_ident!("{}", format!("Fields·{}", struct_name_suffix))
     }
 }
-
 // TODO: Reject base 64 special characters.
 fn reject_higher_base_chars(text: &str, base: Base) {
     let banned_chars: BTreeSet<char> = match base {
@@ -179,4 +204,12 @@ fn reject_higher_base_chars(text: &str, base: Base) {
         "Invalid characters for base {} detected: {rejections:?}. Did you mean to use a higher base?",
         base as u8,
     );
+}
+
+#[derive(Debug)]
+pub enum OnOverflow {
+    Wrap,
+    Panic,
+    Corrupt,
+    Saturate,
 }

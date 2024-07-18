@@ -345,6 +345,43 @@ fn ux_other() {
 }
 
 #[test]
+fn combine_overflow() {
+    let a: u8 = 0b1010_0101;
+    let result = combinebits!("0aaa aaaa");
+    assert_eq!(result, 0b0010_0101);
+}
+
+// Same as default behavior.
+#[test]
+fn combine_overflow_wrap() {
+    let a: u8 = 0b1010_0101;
+    let result = combinebits!(overflow=wrap, "0aaa aaaa");
+    assert_eq!(result, 0b0010_0101);
+}
+
+#[test]
+#[should_panic(expected = "Variable a is too big for its location in the template. 165 > 127 (7 bits)")]
+fn combine_overflow_panic() {
+    let a: u8 = 0b1010_0101;
+    let result = combinebits!(overflow=panic, "0aaa aaaa");
+    assert_eq!(result, 0b0010_0101);
+}
+
+#[test]
+fn combine_overflow_corrupt() {
+    let a: u8 = 0b1010_0101;
+    let result = combinebits!(overflow=corrupt, "0aaa aaaa");
+    assert_eq!(result, 0b1010_0101);
+}
+
+#[test]
+fn combine_overflow_saturate() {
+    let a: u8 = 0b1010_0101;
+    let result = combinebits!(overflow=saturate, "0aaa aaaa");
+    assert_eq!(result, 0b0111_1111);
+}
+
+#[test]
 fn combine_trivial() {
     let a: u16 = 0b1010_0101_0000_1111;
     let result = combinebits!("aaaa aaaa aaaa aaaa");

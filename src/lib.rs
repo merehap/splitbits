@@ -11,20 +11,21 @@ mod segment;
 mod template;
 mod r#type;
 
+use std::collections::VecDeque;
+
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Token, Expr};
+use syn::{Token, Expr, ExprAssign};
 use syn::parse::Parser;
 use syn::punctuated::Punctuated;
 
 use crate::base::Base;
 use crate::field::Field;
-use crate::template::Template;
+use crate::template::{Template, OnOverflow};
 use crate::r#type::Precision;
 
 // TODO:
-// * Enable specifying overflow behavior in combinebits.
-// ** Ensure usability in const contexts.
+// * Ensure overflow behavior usability in const contexts.
 // * Allow passing minimum variable size.
 // * Better error messages.
 // * Tests that confirm non-compilation cases.
@@ -38,6 +39,7 @@ use crate::r#type::Precision;
 // * Allow non-const variable templates (as a separate macro).
 // * Allow non-standard template lengths.
 // * Add splitbits_capture.
+// * Add file-level config for overflow and min.
 
 #[proc_macro]
 pub fn splitbits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -197,14 +199,28 @@ fn combinebits_base(input: proc_macro::TokenStream, base: Base) -> proc_macro::T
         Punctuated::<Expr, Token![,]>::parse_terminated,
         input.clone().into(),
     ).unwrap();
-    let parts: Vec<Expr> = parts.into_iter().collect();
+    let mut parts: VecDeque<_> = parts.into_iter().collect();
+    let on_overflow = match u8::try_from(parts.len()).unwrap() {
+        0 => panic!("combinebits! must take at least one argument."),
+        1 => OnOverflow::Wrap,
+        2..=255 => {
+            if let Some(Setting::Overflow(on_overflow)) = parse_assignment(&parts[0]) {
+                parts.pop_front();
+                on_overflow
+            } else {
+                OnOverflow::Wrap
+            }
+        }
+    };
+
     if parts.len() == 1 {
-        let template = Template::from_expr(&parts[0], base, Precision::Ux);
-        template.combine_variables().into()
+        let template = Template::from_expr(&parts.pop_front().unwrap(), base, Precision::Ux);
+        template.combine_variables(on_overflow).into()
     } else {
-        let template = Template::from_expr(&parts[parts.len() - 1], base, Precision::Ux);
+        let template = Template::from_expr(&parts.pop_back().unwrap(), base, Precision::Ux);
         // Everything except the last argument is an input variable.
-        template.combine_with(&parts[0..parts.len() - 1]).into()
+        parts.make_contiguous();
+        template.combine_with(parts.as_slices().0).into()
     }
 }
 
@@ -270,4 +286,42 @@ fn parse_input(item: TokenStream, base: Base, precision: Precision, literals_all
 enum LiteralsAllowed {
     No,
     Yes,
+}
+
+fn parse_assignment(expr: &Expr) -> Option<Setting> {
+    if let Expr::Assign(ExprAssign { left, right, ..}) = expr {
+        Some(Setting::parse(&left, &right).unwrap())
+    } else {
+        None
+    }
+}
+
+enum Setting {
+    Overflow(OnOverflow),
+}
+
+impl Setting {
+    fn parse(left: &Expr, right: &Expr) -> Result<Setting, String> {
+        match Setting::expr_to_ident(left)?.as_ref() {
+            "overflow" => Ok(Setting::Overflow(match Setting::expr_to_ident(right)?.as_ref() {
+                "wrap" => OnOverflow::Wrap,
+                "panic" => OnOverflow::Panic,
+                "corrupt" => OnOverflow::Corrupt,
+                "saturate" => OnOverflow::Saturate,
+                overflow => return Err(
+                    format!("'{overflow}' is an invalid overflow option. Options: 'wrap', 'panic', 'corrupt', 'saturate'.")),
+            })),
+            name => return Err(format!("'{name}' is not a supported setting.")),
+        }
+    }
+
+    fn expr_to_ident(expr: &Expr) -> Result<String, String> {
+        if let Expr::Path(path) = expr {
+            path.path.get_ident()
+                .ok_or(format!("Can't convert expr path to a setting component. Expr path: {path:?}"))
+                .map(|p| p.to_string())
+        } else {
+            Err(format!("Can't convert expr to a setting component. Expr: {expr:?}"))
+        }
+    }
 }

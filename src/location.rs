@@ -19,7 +19,10 @@ impl Location {
     }
 
     pub fn to_mask(self) -> u128 {
-        let bits: u128 = 2u128.pow(self.len as u32) - 1;
-        bits << self.mask_offset
+        self.to_unshifted_mask() << self.mask_offset
+    }
+
+    pub fn to_unshifted_mask(self) -> u128 {
+        2u128.pow(self.len as u32) - 1
     }
 }

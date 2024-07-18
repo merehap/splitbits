@@ -10,7 +10,7 @@ proc-macro = true
 itertools = "0.13.0"
 proc-macro2 = "1.0"
 quote = "1.0.36"
-syn = "2.0.66"
+syn = { version = "2.0.66", features=["full", "extra-traits"] }
 
 [dev-dependencies]
 trybuild = "1.0.96"
