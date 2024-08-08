@@ -1,4 +1,5 @@
 #![forbid(unsafe_code)]
+#![feature(let_chains)]
 
 extern crate proc_macro;
 
@@ -22,11 +23,11 @@ use syn::punctuated::Punctuated;
 use crate::base::Base;
 use crate::field::Field;
 use crate::template::{Template, OnOverflow};
-use crate::r#type::Precision;
+use crate::r#type::{Type, Precision};
 
 // TODO:
 // * Ensure overflow behavior usability in const contexts.
-// * Allow passing minimum variable size.
+// * Allow use of u1s instead of bools.
 // * Better error messages.
 // * Tests that confirm non-compilation cases.
 // * splitbits_named_into isn't into-ing.
@@ -141,9 +142,13 @@ pub fn replacehex_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
     replacebits_base(input, Base::Hexadecimal, Precision::Ux)
 }
 
-fn splitbits_base(input: proc_macro::TokenStream, base: Base, precision: Precision) -> proc_macro::TokenStream {
-    let (value, template) = parse_input(input.into(), base, precision, LiteralsAllowed::No);
-    let fields = template.extract_fields(&value);
+fn splitbits_base(
+    input: proc_macro::TokenStream,
+    base: Base,
+    precision: Precision,
+) -> proc_macro::TokenStream {
+    let (value, template, min_size) = parse_input(input.into(), base, precision, LiteralsAllowed::No);
+    let fields = template.extract_fields(&value, min_size);
 
     let struct_name = template.to_struct_name();
     let names: Vec<_> = fields.iter().map(|field| field.name().to_ident()).collect();
@@ -164,9 +169,13 @@ fn splitbits_base(input: proc_macro::TokenStream, base: Base, precision: Precisi
     result.into()
 }
 
-fn splitbits_named_base(input: proc_macro::TokenStream, base: Base, precision: Precision) -> proc_macro::TokenStream {
-    let (value, template) = parse_input(input.into(), base, precision, LiteralsAllowed::No);
-    let fields = template.extract_fields(&value);
+fn splitbits_named_base(
+    input: proc_macro::TokenStream,
+    base: Base,
+    precision: Precision,
+) -> proc_macro::TokenStream {
+    let (value, template, min_size) = parse_input(input.into(), base, precision, LiteralsAllowed::No);
+    let fields = template.extract_fields(&value, min_size);
     let values: Vec<TokenStream> = fields.iter().map(|field| field.to_token_stream()).collect();
 
     let result = match &values[..] {
@@ -179,9 +188,13 @@ fn splitbits_named_base(input: proc_macro::TokenStream, base: Base, precision: P
     result.into()
 }
 
-fn splitbits_named_into_base(input: proc_macro::TokenStream, base: Base, precision: Precision) -> proc_macro::TokenStream {
-    let (value, template) = parse_input(input.into(), base, precision, LiteralsAllowed::No);
-    let fields = template.extract_fields(&value);
+fn splitbits_named_into_base(
+    input: proc_macro::TokenStream,
+    base: Base,
+    precision: Precision,
+) -> proc_macro::TokenStream {
+    let (value, template, min_size) = parse_input(input.into(), base, precision, LiteralsAllowed::No);
+    let fields = template.extract_fields(&value, min_size);
     let values: Vec<TokenStream> = fields.iter().map(|field| field.to_token_stream()).collect();
 
     let result = match &values[..] {
@@ -239,7 +252,7 @@ fn split_then_combine_base(input: proc_macro::TokenStream, base: Base) -> proc_m
     for i in 0..parts.len() / 2 {
         let value = parts[2 * i].clone();
         let template = Template::from_expr(&parts[2 * i + 1], base, PRECISION);
-        fields = Field::merge(fields, template.extract_fields(&value));
+        fields = Field::merge(fields, template.extract_fields(&value, None));
     }
 
     let expr = &parts[parts.len() - 1];
@@ -256,18 +269,32 @@ fn split_then_combine_base(input: proc_macro::TokenStream, base: Base) -> proc_m
 }
 
 fn replacebits_base(input: proc_macro::TokenStream, base: Base, precision: Precision) -> proc_macro::TokenStream {
-    let (value, template) = parse_input(input.into(), base, precision, LiteralsAllowed::Yes);
+    let (value, template, min_size) = parse_input(input.into(), base, precision, LiteralsAllowed::Yes);
+    assert_eq!(min_size, None);
     let result = template.replace(&value);
     result.into()
 }
 
-fn parse_input(item: TokenStream, base: Base, precision: Precision, literals_allowed: LiteralsAllowed) -> (Expr, Template) {
+fn parse_input(item: TokenStream, base: Base, precision: Precision, literals_allowed: LiteralsAllowed) -> (Expr, Template, Option<Type>) {
     let parts = Parser::parse2(
         Punctuated::<Expr, Token![,]>::parse_terminated,
         item.clone().into(),
     ).unwrap();
-    let parts: Vec<Expr> = parts.into_iter().collect();
-    assert_eq!(parts.len(), 2);
+    let mut parts: VecDeque<_> = parts.into_iter().collect();
+    assert!(parts.len() == 2 || parts.len() == 3);
+
+    let mut min_size = None;
+    if parts.len() == 3 {
+        if let Some(Setting::MinFieldSize(size)) = parse_assignment(&parts[0]) {
+            if precision == Precision::Standard && !size.is_standard() {
+                panic!("Type '{size}' is only supported in _ux macros.");
+            }
+            min_size = Some(size);
+        } else {
+            panic!();
+        }
+        parts.pop_front();
+    }
 
     if literals_allowed == LiteralsAllowed::No {
         let template_string = Template::template_string(&parts[1]);
@@ -279,7 +306,7 @@ fn parse_input(item: TokenStream, base: Base, precision: Precision, literals_all
 
     let value = parts[0].clone();
     let template = Template::from_expr(&parts[1], base, precision);
-    (value, template)
+    (value, template, min_size)
 }
 
 #[derive(PartialEq, Eq)]
@@ -298,19 +325,30 @@ fn parse_assignment(expr: &Expr) -> Option<Setting> {
 
 enum Setting {
     Overflow(OnOverflow),
+    MinFieldSize(Type),
 }
 
 impl Setting {
     fn parse(left: &Expr, right: &Expr) -> Result<Setting, String> {
         match Setting::expr_to_ident(left)?.as_ref() {
-            "overflow" => Ok(Setting::Overflow(match Setting::expr_to_ident(right)?.as_ref() {
-                "wrap" => OnOverflow::Wrap,
-                "panic" => OnOverflow::Panic,
-                "corrupt" => OnOverflow::Corrupt,
-                "saturate" => OnOverflow::Saturate,
-                overflow => return Err(
-                    format!("'{overflow}' is an invalid overflow option. Options: 'wrap', 'panic', 'corrupt', 'saturate'.")),
-            })),
+            "overflow" => {
+                let overflow = match Setting::expr_to_ident(right)?.as_ref() {
+                    "wrap" => OnOverflow::Wrap,
+                    "panic" => OnOverflow::Panic,
+                    "corrupt" => OnOverflow::Corrupt,
+                    "saturate" => OnOverflow::Saturate,
+                    overflow => return Err(
+                        format!("'{overflow}' is an invalid overflow option. Options: 'wrap', 'panic', 'corrupt', 'saturate'.")),
+                };
+                Ok(Setting::Overflow(overflow))
+            },
+            "min" => {
+                let mut min = Setting::expr_to_ident(right)?;
+                let u = min.remove(0);
+                assert_eq!(u, 'u');
+                let min: u8 = min.parse().unwrap();
+                Ok(Setting::MinFieldSize(Type::new(min)))
+            }
             name => return Err(format!("'{name}' is not a supported setting.")),
         }
     }

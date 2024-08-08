@@ -3,11 +3,19 @@ use std::fmt;
 use proc_macro2::TokenStream;
 use quote::{quote, format_ident};
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 pub struct Type(u8);
 
 impl Type {
     pub const BOOL: Type = Type(1);
+
+    pub fn new(len: u8) -> Type {
+        match len {
+            0 => panic!(),
+            1..=128 => Type(len.try_into().unwrap()),
+            129..=u8::MAX => panic!("Integers larger than u128 are not supported."),
+        }
+    }
 
     pub fn for_template(len: u8) -> Type {
         match len {
@@ -34,15 +42,20 @@ impl Type {
         }
     }
 
+    pub fn is_standard(self) -> bool {
+        matches!(self.0, 1 | 8 | 16 | 32 | 64 | 128)
+    }
+
     pub fn concat(self, other: Type) -> Type {
         Type::for_field(self.0 + other.0, Precision::Standard)
     }
 
     pub fn to_token_stream(self) -> TokenStream {
         let ident = format_ident!("{}", self.to_string());
-        match self.0 {
-            1 | 8 | 16 | 32 | 64 | 128 => quote! { #ident },
-            _ => quote! { ux::#ident },
+        if self.is_standard() {
+            quote! { #ident }
+        } else {
+            quote! { ux::#ident }
         }
     }
 }

@@ -1,7 +1,7 @@
 extern crate splitbits;
 
 use splitbits::*;
-use ux::{u1, u4, u2, u7, u9, u12, u19, u28};
+use ux::{u1, u3, u4, u2, u7, u9, u12, u19, u28};
 
 #[test]
 fn u8() {
@@ -103,13 +103,13 @@ fn duplicate() {
 #[test]
 fn u16() {
     let fields = splitbits!(
-        0b1101110111110001,
+        0b1101110111111001,
          "aaaaaaaaadddefff",
     );
     assert_eq!(fields.a, 0b110111011u16);
 
     assert_eq!(fields.d, 0b111u8);
-    assert_eq!(fields.e, false);
+    assert_eq!(fields.e, true);
     assert_eq!(fields.f, 0b001u8);
 }
 
@@ -178,6 +178,63 @@ fn u128() {
     assert_eq!(fields.v, 0b110u8);
     assert_eq!(fields.w, 0b10u8);
     assert_eq!(fields.x, 0b0001u8);
+}
+
+#[test]
+fn min_u8() {
+    let fields = splitbits!(
+        min=u8,
+        0b1101110111111001,
+         "aaaaaaaaadddefff",
+    );
+    assert_eq!(fields.a, 0b110111011u16);
+
+    assert_eq!(fields.d, 0b111u8);
+    assert_eq!(fields.e, 0b1u8);
+    assert_eq!(fields.f, 0b001u8);
+}
+
+#[test]
+fn min_u16() {
+    let fields = splitbits!(
+        min=u16,
+        0b1101110111111001,
+         "aaaaaaaaadddefff",
+    );
+    assert_eq!(fields.a, 0b110111011u16);
+
+    assert_eq!(fields.d, 0b111u16);
+    assert_eq!(fields.e, 0b1u16);
+    assert_eq!(fields.f, 0b001u16);
+}
+
+#[test]
+fn min_u1() {
+    let fields = splitbits_ux!(
+        min=u1,
+        0b1101110111111001,
+         "aaaaaaaaadddefff",
+    );
+    assert_eq!(fields.a, u9::new(0b110111011u16));
+
+    assert_eq!(fields.d, u3::new(0b111u8));
+    // FIXME: This shouldn't be a bool, it should be a u1.
+    assert_eq!(fields.e, true);
+    assert_eq!(fields.f, u3::new(0b001u8));
+}
+
+#[test]
+fn min_u2() {
+    let fields = splitbits_ux!(
+        min=u2,
+        0b1101110111111001,
+         "aaaaaaaaadddefff",
+    );
+    assert_eq!(fields.a, u9::new(0b110111011u16));
+
+    assert_eq!(fields.d, u3::new(0b111u8));
+    assert_eq!(fields.e, u2::new(0b1u8));
+    assert_eq!(fields.f, u3::new(0b001u8));
 }
 
 // ALTERNATE VARIABLE SETTING METHODS

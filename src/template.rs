@@ -62,9 +62,9 @@ impl Template {
         self.characters.has_placeholders()
     }
 
-    pub fn extract_fields(&self, input: &Expr) -> Vec<Field> {
+    pub fn extract_fields(&self, input: &Expr, min_size: Option<Type>) -> Vec<Field> {
         self.locations_by_name.iter()
-            .map(|(name, locations)| Field::new(*name, self.input_type, input, self.precision, &locations))
+            .map(|(name, locations)| Field::new(*name, self.input_type, input, self.precision, min_size, &locations))
             .collect()
     }
 

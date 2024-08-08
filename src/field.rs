@@ -17,7 +17,14 @@ pub struct Field {
 }
 
 impl Field {
-    pub fn new(name: Name, input_type: Type, input: &Expr, precision: Precision, locations: &[Location]) -> Field {
+    pub fn new(
+        name: Name,
+        input_type: Type,
+        input: &Expr,
+        precision: Precision,
+        min_size: Option<Type>,
+        locations: &[Location],
+    ) -> Field {
         let mut segment_offset = 0;
         let mut segments = Vec::new();
         for &location in locations {
@@ -29,7 +36,11 @@ impl Field {
         }
 
         let bit_count = locations.iter().map(|location| location.len()).sum();
-        let t = Type::for_field(bit_count, precision);
+        let mut t = Type::for_field(bit_count, precision);
+        if let Some(min_size) = min_size && min_size > t {
+            t = min_size;
+        }
+
         Field { name, segments, t }
     }
 
