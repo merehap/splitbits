@@ -347,7 +347,7 @@ impl Setting {
                 let u = min.remove(0);
                 assert_eq!(u, 'u');
                 let min: u8 = min.parse().unwrap();
-                Ok(Setting::MinFieldSize(Type::new(min)))
+                Ok(Setting::MinFieldSize(Type::ux(min)))
             }
             name => return Err(format!("'{name}' is not a supported setting.")),
         }
