@@ -47,7 +47,7 @@ impl Field {
     pub fn to_token_stream(&self) -> TokenStream {
         let t = self.t.to_token_stream();
         let mut segments = self.segments.iter().map(Segment::to_token_stream);
-        if self.t == Type::BOOL {
+        if self.t == Type::Bool {
             let segment = segments.next().unwrap();
             quote! { (#segment) != 0 }
         } else {

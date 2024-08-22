@@ -218,8 +218,7 @@ fn min_u1() {
     assert_eq!(fields.a, u9::new(0b110111011u16));
 
     assert_eq!(fields.d, u3::new(0b111u8));
-    // FIXME: This shouldn't be a bool, it should be a u1.
-    assert_eq!(fields.e, true);
+    assert_eq!(fields.e, u1::new(0b1));
     assert_eq!(fields.f, u3::new(0b001u8));
 }
 

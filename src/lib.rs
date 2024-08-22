@@ -23,11 +23,10 @@ use syn::punctuated::Punctuated;
 use crate::base::Base;
 use crate::field::Field;
 use crate::template::{Template, OnOverflow};
-use crate::r#type::{Type, Precision};
+use crate::r#type::{Type, Precision, BitCount};
 
 // TODO:
 // * Ensure overflow behavior usability in const contexts.
-// * Allow use of u1s instead of bools.
 // * Better error messages.
 // * Tests that confirm non-compilation cases.
 // * splitbits_named_into isn't into-ing.
@@ -343,11 +342,15 @@ impl Setting {
                 Ok(Setting::Overflow(overflow))
             },
             "min" => {
-                let mut min = Setting::expr_to_ident(right)?;
-                let u = min.remove(0);
-                assert_eq!(u, 'u');
-                let min: u8 = min.parse().unwrap();
-                Ok(Setting::MinFieldSize(Type::new(min)))
+                let mut min: String = Setting::expr_to_ident(right)?;
+                if min == "bool".to_string() {
+                    Ok(Setting::MinFieldSize(Type::Bool))
+                } else {
+                    let u = min.remove(0);
+                    assert_eq!(u, 'u');
+                    let min: u8 = min.parse().unwrap();
+                    Ok(Setting::MinFieldSize(Type::Num(BitCount::new(min).unwrap())))
+                }
             }
             name => return Err(format!("'{name}' is not a supported setting.")),
         }
