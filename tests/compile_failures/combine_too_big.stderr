@@ -5,6 +5,6 @@ error[E0277]: the trait bound `u8: From<u16>` is not satisfied
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `From<u16>` is not implemented for `u8`
   |
   = help: the following other types implement trait `From<T>`:
-            <u8 as From<Char>>
-            <u8 as From<bool>>
+            `u8` implements `From<Char>`
+            `u8` implements `From<bool>`
   = note: this error originates in the macro `combinebits` (in Nightly builds, run with -Z macro-backtrace for more info)
