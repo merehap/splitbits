@@ -77,7 +77,7 @@ impl Characters {
     }
 
     pub fn extract_literal(&self) -> Option<u128> {
-        if self.0.iter().filter(|c| c.is_literal()).next().is_none() {
+        if !self.0.iter().any(|c| c.is_literal()) {
             return None;
         }
 
@@ -96,8 +96,7 @@ impl Characters {
 
     pub fn has_placeholders(&self) -> bool {
         self.0.iter()
-            .find(|&&character| character == Character::Placeholder)
-            .is_some()
+            .any(|&character| character == Character::Placeholder)
     }
 
     pub fn to_names(&self) -> Vec<Name> {

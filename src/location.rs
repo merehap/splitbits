@@ -23,6 +23,6 @@ impl Location {
     }
 
     pub fn to_unshifted_mask(self) -> u128 {
-        2u128.pow(self.len as u32) - 1
+        2u128.pow(u32::from(self.len)) - 1
     }
 }

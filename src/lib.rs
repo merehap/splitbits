@@ -152,7 +152,7 @@ fn splitbits_base(
     let struct_name = template.to_struct_name();
     let names: Vec<_> = fields.iter().map(|field| field.name().to_ident()).collect();
     let types: Vec<_> = fields.iter().map(|field| field.t().to_token_stream()).collect();
-    let values: Vec<TokenStream> = fields.iter().map(|field| field.to_token_stream()).collect();
+    let values: Vec<TokenStream> = fields.iter().map(Field::to_token_stream).collect();
     let result = quote! {
         {
             struct #struct_name {
@@ -175,16 +175,15 @@ fn splitbits_named_base(
 ) -> proc_macro::TokenStream {
     let (value, template, min_size) = parse_input(input.into(), base, precision, LiteralsAllowed::No);
     let fields = template.extract_fields(&value, min_size);
-    let values: Vec<TokenStream> = fields.iter().map(|field| field.to_token_stream()).collect();
+    let values: Vec<TokenStream> = fields.iter().map(Field::to_token_stream).collect();
 
-    let result = match &values[..] {
+    if let [value] = &values[..] {
         // Single value
-        [value] => quote! { #value },
+        quote! { #value }
+    } else {
         // Tuple
-        _ => quote! { (#(#values,)*) },
-    };
-
-    result.into()
+        quote! { (#(#values,)*) }
+    }.into()
 }
 
 fn splitbits_named_into_base(
@@ -194,22 +193,21 @@ fn splitbits_named_into_base(
 ) -> proc_macro::TokenStream {
     let (value, template, min_size) = parse_input(input.into(), base, precision, LiteralsAllowed::No);
     let fields = template.extract_fields(&value, min_size);
-    let values: Vec<TokenStream> = fields.iter().map(|field| field.to_token_stream()).collect();
+    let values: Vec<TokenStream> = fields.iter().map(Field::to_token_stream).collect();
 
-    let result = match &values[..] {
+    if let [value] = &values[..] {
         // Single value
-        [value] => quote! { #value.into() },
+        quote! { #value.into() }
+    } else {
         // Tuple
-        _ => quote! { (#((#values).into(),)*) },
-    };
-
-    result.into()
+        quote! { (#((#values).into(),)*) }
+    }.into()
 }
 
 fn combinebits_base(input: proc_macro::TokenStream, base: Base) -> proc_macro::TokenStream {
     let parts = Parser::parse2(
         Punctuated::<Expr, Token![,]>::parse_terminated,
-        input.clone().into(),
+        input.into(),
     ).unwrap();
     let mut parts: VecDeque<_> = parts.into_iter().collect();
     let on_overflow = match u8::try_from(parts.len()).unwrap() {
@@ -241,7 +239,7 @@ fn split_then_combine_base(input: proc_macro::TokenStream, base: Base) -> proc_m
 
     let parts = Parser::parse2(
         Punctuated::<Expr, Token![,]>::parse_terminated,
-        input.clone().into(),
+        input.into(),
     ).unwrap();
     let parts: Vec<Expr> = parts.into_iter().collect();
     assert!(parts.len() >= 3);
@@ -251,7 +249,7 @@ fn split_then_combine_base(input: proc_macro::TokenStream, base: Base) -> proc_m
     for i in 0..parts.len() / 2 {
         let value = parts[2 * i].clone();
         let template = Template::from_expr(&parts[2 * i + 1], base, PRECISION);
-        fields = Field::merge(fields, template.extract_fields(&value, None));
+        fields = Field::merge(&fields, &template.extract_fields(&value, None));
     }
 
     let expr = &parts[parts.len() - 1];
@@ -277,7 +275,7 @@ fn replacebits_base(input: proc_macro::TokenStream, base: Base, precision: Preci
 fn parse_input(item: TokenStream, base: Base, precision: Precision, literals_allowed: LiteralsAllowed) -> (Expr, Template, Option<Type>) {
     let parts = Parser::parse2(
         Punctuated::<Expr, Token![,]>::parse_terminated,
-        item.clone().into(),
+        item,
     ).unwrap();
     let mut parts: VecDeque<_> = parts.into_iter().collect();
     assert!(parts.len() == 2 || parts.len() == 3);
@@ -285,9 +283,7 @@ fn parse_input(item: TokenStream, base: Base, precision: Precision, literals_all
     let mut min_size = None;
     if parts.len() == 3 {
         if let Some(Setting::MinFieldSize(size)) = parse_assignment(&parts[0]) {
-            if precision == Precision::Standard && !size.is_standard() {
-                panic!("Type '{size}' is only supported in _ux macros.");
-            }
+            assert!(precision != Precision::Standard || size.is_standard(), "Type '{size}' is only supported in _ux macros.");
             min_size = Some(size);
         } else {
             panic!();
@@ -308,7 +304,7 @@ fn parse_input(item: TokenStream, base: Base, precision: Precision, literals_all
     (value, template, min_size)
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 enum LiteralsAllowed {
     No,
     Yes,
@@ -316,7 +312,7 @@ enum LiteralsAllowed {
 
 fn parse_assignment(expr: &Expr) -> Option<Setting> {
     if let Expr::Assign(ExprAssign { left, right, ..}) = expr {
-        Some(Setting::parse(&left, &right).unwrap())
+        Some(Setting::parse(left, right).unwrap())
     } else {
         None
     }
@@ -343,7 +339,7 @@ impl Setting {
             },
             "min" => {
                 let mut min: String = Setting::expr_to_ident(right)?;
-                if min == "bool".to_string() {
+                if &min == "bool" {
                     Ok(Setting::MinFieldSize(Type::Bool))
                 } else {
                     let u = min.remove(0);
@@ -352,7 +348,7 @@ impl Setting {
                     Ok(Setting::MinFieldSize(Type::Num(BitCount::new(min).unwrap())))
                 }
             }
-            name => return Err(format!("'{name}' is not a supported setting.")),
+            name => Err(format!("'{name}' is not a supported setting.")),
         }
     }
 
@@ -360,7 +356,7 @@ impl Setting {
         if let Expr::Path(path) = expr {
             path.path.get_ident()
                 .ok_or(format!("Can't convert expr path to a setting component. Expr path: {path:?}"))
-                .map(|p| p.to_string())
+                .map(ToString::to_string)
         } else {
             Err(format!("Can't convert expr to a setting component. Expr: {expr:?}"))
         }

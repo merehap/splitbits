@@ -55,14 +55,14 @@ impl Field {
         }
     }
 
-    pub fn merge(upper: Vec<Field>, lower: Vec<Field>) -> Vec<Field> {
+    pub fn merge(upper: &[Field], lower: &[Field]) -> Vec<Field> {
         let lower_map: BTreeMap<_, _> = lower.iter()
             .map(|field| (field.name, field))
             .collect();
         let mut result = Vec::new();
-        for u in &upper {
+        for u in upper {
             if let Some(l) = lower_map.get(&u.name) {
-                result.push(u.concat(&l));
+                result.push(u.concat(l));
             } else {
                 result.push(u.clone());
             }
@@ -73,7 +73,7 @@ impl Field {
             .collect();
         for l in lower {
             if !upper_map.contains_key(&l.name) {
-                result.push(l);
+                result.push(l.clone());
             }
         }
 
@@ -128,7 +128,7 @@ impl Field {
 
     pub fn len(&self) -> u8 {
         self.segments.iter()
-            .map(|segment| segment.len())
+            .map(Segment::len)
             .sum()
     }
 }

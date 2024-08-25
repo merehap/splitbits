@@ -25,8 +25,7 @@ impl Template {
         reject_higher_base_chars(&template_string, base);
         let characters = Characters::from_str(&template_string, base);
 
-        let len: u8 = characters.len().try_into()
-            .expect("template should be under 256 characters long.");
+        let len: u8 = characters.len();
         let input_type = Type::for_template(len);
         let mut locations_by_name: Vec<(Name, Vec<Location>)> = Vec::new();
         for name in characters.to_names() {
@@ -64,7 +63,7 @@ impl Template {
 
     pub fn extract_fields(&self, input: &Expr, min_size: Option<Type>) -> Vec<Field> {
         self.locations_by_name.iter()
-            .map(|(name, locations)| Field::new(*name, self.input_type, input, self.precision, min_size, &locations))
+            .map(|(name, locations)| Field::new(*name, self.input_type, input, self.precision, min_size, locations))
             .collect()
     }
 
@@ -199,14 +198,14 @@ fn reject_higher_base_chars(text: &str, base: Base) {
     };
 
     let chars: BTreeSet<char> = text.chars().collect();
-    let rejections: Vec<char> = chars.intersection(&banned_chars).cloned().collect();
+    let rejections: Vec<char> = chars.intersection(&banned_chars).copied().collect();
     assert!(rejections.is_empty(),
         "Invalid characters for base {} detected: {rejections:?}. Did you mean to use a higher base?",
         base as u8,
     );
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum OnOverflow {
     Wrap,
     Panic,
