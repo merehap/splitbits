@@ -223,24 +223,20 @@ fn combinebits_base(input: proc_macro::TokenStream, base: Base) -> proc_macro::T
         }
     };
 
-    if parts.len() == 1 {
-        let template = Template::from_expr(&parts.pop_front().unwrap(), base, Precision::Ux);
+    let template = Template::from_expr(&parts.pop_back().unwrap(), base, Precision::Ux);
+    if parts.is_empty() {
         template.combine_variables(on_overflow).into()
     } else {
-        let template = Template::from_expr(&parts.pop_back().unwrap(), base, Precision::Ux);
         // Everything except the last argument is an input variable.
         parts.make_contiguous();
+        // TODO: Does OnOverflow need to be passed here?
         template.combine_with(parts.as_slices().0).into()
     }
 }
 
 fn split_then_combine_base(input: proc_macro::TokenStream, base: Base) -> proc_macro::TokenStream {
     const PRECISION: Precision = Precision::Standard;
-
-    let parts = Parser::parse2(
-        Punctuated::<Expr, Token![,]>::parse_terminated,
-        input.into(),
-    ).unwrap();
+    let parts = Parser::parse2(Punctuated::<Expr, Token![,]>::parse_terminated, input.into()).unwrap();
     let parts: Vec<Expr> = parts.into_iter().collect();
     assert!(parts.len() >= 3);
     assert!(parts.len() % 2 == 1);
@@ -273,10 +269,7 @@ fn replacebits_base(input: proc_macro::TokenStream, base: Base, precision: Preci
 }
 
 fn parse_input(item: TokenStream, base: Base, precision: Precision, literals_allowed: LiteralsAllowed) -> (Expr, Template, Option<Type>) {
-    let parts = Parser::parse2(
-        Punctuated::<Expr, Token![,]>::parse_terminated,
-        item,
-    ).unwrap();
+    let parts = Parser::parse2(Punctuated::<Expr, Token![,]>::parse_terminated, item).unwrap();
     let mut parts: VecDeque<_> = parts.into_iter().collect();
     assert!(parts.len() == 2 || parts.len() == 3);
 
@@ -288,6 +281,7 @@ fn parse_input(item: TokenStream, base: Base, precision: Precision, literals_all
         } else {
             panic!();
         }
+
         parts.pop_front();
     }
 
