@@ -12,21 +12,16 @@ pub struct Segment {
     input: Expr,
     t: Type,
     location: Location,
-    shift: i16,
+    segment_offset: u8,
 }
 
 impl Segment {
-    pub fn new(input: Expr, t: Type, location: Location) -> Self {
-        Self { input, t, location, shift: 0 }
+    pub fn new(input: Expr, t: Type, location: Location, segment_offset: u8) -> Self {
+        Self { input, t, location, segment_offset }
     }
 
-    pub fn shift_left(&mut self, shift: u8) -> Self {
-        self.shift -= i16::from(shift);
-        self.clone()
-    }
-
-    pub fn shift_right(&mut self, shift: u8) -> Self {
-        self.shift += i16::from(shift);
+    pub fn set_output_segment_offset(&mut self, output_segment_offset: u8) -> Self {
+        self.segment_offset += output_segment_offset;
         self.clone()
     }
 
@@ -38,10 +33,14 @@ impl Segment {
         self.clone()
     }
 
+    fn shift(&self) -> i16 {
+        i16::from(self.location.mask_offset()) - i16::from(self.segment_offset)
+    }
+
     pub fn to_token_stream(&self) -> TokenStream {
         let input = &self.input;
-        let ordering = self.shift.cmp(&0);
-        let shift = self.shift.abs();
+        let ordering = self.shift().cmp(&0);
+        let shift = self.shift().abs();
         let shifter = match ordering {
             // There's no need to shift if the shift is 0.
             Ordering::Equal => quote! { },

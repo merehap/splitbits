@@ -28,9 +28,7 @@ impl Field {
         let mut segment_offset = 0;
         let mut segments = Vec::new();
         for &location in locations {
-            let segment = Segment::new(input.clone(), input_type, location)
-                .shift_right(location.mask_offset())
-                .shift_left(segment_offset);
+            let segment = Segment::new(input.clone(), input_type, location, segment_offset);
             segment_offset += location.len();
             segments.push(segment);
         }
@@ -85,7 +83,7 @@ impl Field {
 
         let mut new_segments = Vec::new();
         for segment in &self.segments {
-            let new_segment = segment.clone().shift_left(lower.len());
+            let new_segment = segment.clone().set_output_segment_offset(lower.len());
             new_segments.push(new_segment);
         }
 
@@ -103,7 +101,7 @@ impl Field {
     // TODO: Fail on overflow.
     pub fn shift_left(mut self, shift: u8) -> Field {
         for segment in &mut self.segments {
-            segment.shift_left(shift);
+            segment.set_output_segment_offset(shift);
         }
 
         self

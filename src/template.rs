@@ -39,7 +39,7 @@ impl Template {
                         let segment: Vec<_> = segment.collect();
                         let len = segment.len() as u8;
                         let mask_offset = segment[0].0 as u8;
-                        Some(Location::new(len, mask_offset))
+                        Some(Location { len, mask_offset })
                     } else {
                         None
                     }

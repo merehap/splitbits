@@ -1,15 +1,10 @@
 #[derive(Clone, Copy)]
 pub struct Location {
-    len: u8,
-    mask_offset: u8,
+    pub len: u8,
+    pub mask_offset: u8,
 }
 
 impl Location {
-    // TODO: Better construction method?
-    pub fn new(len: u8, mask_offset: u8) -> Location {
-        Location { len, mask_offset }
-    }
-
     pub fn len(self) -> u8 {
         self.len
     }
