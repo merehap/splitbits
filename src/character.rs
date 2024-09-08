@@ -115,15 +115,15 @@ impl Characters {
     }
 
     fn hex_digit_to_array(digit: char) -> Option<[Character; 4]> {
+        fn conv(value: u32) -> Character {
+            if value == 0 { Character::Zero } else { Character::One }
+        }
+
         let n = match digit {
             '0'..='9' => digit as u32 - '0' as u32,
             'A'..='F' => digit as u32 - 'A' as u32 + 0xA,
             _ => return None,
         };
-
-        fn conv(value: u32) -> Character {
-            if value == 0 { Character::Zero } else { Character::One }
-        }
 
         Some([conv(n & 0b1000), conv(n & 0b0100), conv(n & 0b0010), conv(n & 0b0001)])
     }

@@ -83,7 +83,7 @@ impl Field {
 
         let mut new_segments = Vec::new();
         for segment in &self.segments {
-            let new_segment = segment.clone().set_output_segment_offset(lower.len());
+            let new_segment = segment.clone().set_output_offset(lower.len());
             new_segments.push(new_segment);
         }
 
@@ -101,7 +101,7 @@ impl Field {
     // TODO: Fail on overflow.
     pub fn shift_left(mut self, shift: u8) -> Field {
         for segment in &mut self.segments {
-            segment.set_output_segment_offset(shift);
+            segment.set_output_offset(shift);
         }
 
         self

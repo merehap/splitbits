@@ -12,16 +12,16 @@ pub struct Segment {
     input: Expr,
     t: Type,
     location: Location,
-    segment_offset: u8,
+    offset: u8,
 }
 
 impl Segment {
-    pub fn new(input: Expr, t: Type, location: Location, segment_offset: u8) -> Self {
-        Self { input, t, location, segment_offset }
+    pub fn new(input: Expr, t: Type, location: Location, offset: u8) -> Self {
+        Self { input, t, location, offset }
     }
 
-    pub fn set_output_segment_offset(&mut self, output_segment_offset: u8) -> Self {
-        self.segment_offset += output_segment_offset;
+    pub fn set_output_offset(&mut self, output_offset: u8) -> Self {
+        self.offset += output_offset;
         self.clone()
     }
 
@@ -34,7 +34,7 @@ impl Segment {
     }
 
     fn shift(&self) -> i16 {
-        i16::from(self.location.mask_offset()) - i16::from(self.segment_offset)
+        i16::from(self.location.mask_offset()) - i16::from(self.offset)
     }
 
     pub fn to_token_stream(&self) -> TokenStream {

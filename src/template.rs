@@ -37,8 +37,8 @@ impl Template {
                 .filter_map(|(c, segment)| {
                     if c == Character::Name(name) {
                         let segment: Vec<_> = segment.collect();
-                        let len = segment.len() as u8;
-                        let mask_offset = segment[0].0 as u8;
+                        let len = segment.len().try_into().unwrap();
+                        let mask_offset = segment[0].0.try_into().unwrap();
                         Some(Location { len, mask_offset })
                     } else {
                         None
