@@ -16,7 +16,7 @@ pub struct Segment {
 }
 
 impl Segment {
-    pub fn new(input: Expr, t: Type, location: Location, offset: u8) -> Self {
+    pub const fn new(input: Expr, t: Type, location: Location, offset: u8) -> Self {
         Self { input, t, location, offset }
     }
 
@@ -53,7 +53,7 @@ impl Segment {
         quote! { (#input as #t & #mask as #t) #shifter }
     }
 
-    pub fn len(&self) -> u8 {
+    pub const fn len(&self) -> u8 {
         self.location.len()
     }
 }

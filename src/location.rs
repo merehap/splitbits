@@ -5,11 +5,11 @@ pub struct Location {
 }
 
 impl Location {
-    pub fn len(self) -> u8 {
+    pub const fn len(self) -> u8 {
         self.len
     }
 
-    pub fn mask_offset(self) -> u8 {
+    pub const fn mask_offset(self) -> u8 {
         self.mask_offset
     }
 

@@ -318,10 +318,10 @@ enum Setting {
 }
 
 impl Setting {
-    fn parse(left: &Expr, right: &Expr) -> Result<Setting, String> {
-        match Setting::expr_to_ident(left)?.as_ref() {
+    fn parse(left: &Expr, right: &Expr) -> Result<Self, String> {
+        match Self::expr_to_ident(left)?.as_ref() {
             "overflow" => {
-                let overflow = match Setting::expr_to_ident(right)?.as_ref() {
+                let overflow = match Self::expr_to_ident(right)?.as_ref() {
                     "wrap" => OnOverflow::Wrap,
                     "panic" => OnOverflow::Panic,
                     "corrupt" => OnOverflow::Corrupt,
@@ -329,17 +329,17 @@ impl Setting {
                     overflow => return Err(
                         format!("'{overflow}' is an invalid overflow option. Options: 'wrap', 'panic', 'corrupt', 'saturate'.")),
                 };
-                Ok(Setting::Overflow(overflow))
+                Ok(Self::Overflow(overflow))
             },
             "min" => {
-                let mut min: String = Setting::expr_to_ident(right)?;
+                let mut min: String = Self::expr_to_ident(right)?;
                 if &min == "bool" {
-                    Ok(Setting::MinFieldSize(Type::Bool))
+                    Ok(Self::MinFieldSize(Type::Bool))
                 } else {
                     let u = min.remove(0);
                     assert_eq!(u, 'u');
                     let min: u8 = min.parse().unwrap();
-                    Ok(Setting::MinFieldSize(Type::Num(BitCount::new(min).unwrap())))
+                    Ok(Self::MinFieldSize(Type::Num(BitCount::new(min).unwrap())))
                 }
             }
             name => Err(format!("'{name}' is not a supported setting.")),
@@ -349,7 +349,7 @@ impl Setting {
     fn expr_to_ident(expr: &Expr) -> Result<String, String> {
         if let Expr::Path(path) = expr {
             path.path.get_ident()
-                .ok_or(format!("Can't convert expr path to a setting component. Expr path: {path:?}"))
+                .ok_or_else(|| format!("Can't convert expr path to a setting component. Expr path: {path:?}"))
                 .map(ToString::to_string)
         } else {
             Err(format!("Can't convert expr to a setting component. Expr: {expr:?}"))

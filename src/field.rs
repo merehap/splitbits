@@ -24,7 +24,7 @@ impl Field {
         precision: Precision,
         min_size: Option<Type>,
         locations: &[Location],
-    ) -> Field {
+    ) -> Self {
         let mut segment_offset = 0;
         let mut segments = Vec::new();
         for &location in locations {
@@ -39,7 +39,7 @@ impl Field {
             t = min_size;
         }
 
-        Field { name, segments, t }
+        Self { name, segments, t }
     }
 
     pub fn to_token_stream(&self) -> TokenStream {
@@ -53,7 +53,7 @@ impl Field {
         }
     }
 
-    pub fn merge(upper: &[Field], lower: &[Field]) -> Vec<Field> {
+    pub fn merge(upper: &[Self], lower: &[Self]) -> Vec<Self> {
         let lower_map: BTreeMap<_, _> = lower.iter()
             .map(|field| (field.name, field))
             .collect();
@@ -78,7 +78,7 @@ impl Field {
         result
     }
 
-    pub fn concat(&self, lower: &Field) -> Field {
+    pub fn concat(&self, lower: &Self) -> Self {
         assert_eq!(self.name, lower.name);
 
         let mut new_segments = Vec::new();
@@ -91,7 +91,7 @@ impl Field {
             new_segments.push(segment.clone());
         }
 
-        Field {
+        Self {
             name: self.name,
             segments: new_segments,
             t: self.t.concat(lower.t),
@@ -99,7 +99,7 @@ impl Field {
     }
 
     // TODO: Fail on overflow.
-    pub fn shift_left(mut self, shift: u8) -> Field {
+    pub fn shift_left(mut self, shift: u8) -> Self {
         for segment in &mut self.segments {
             segment.set_output_offset(shift);
         }
@@ -107,7 +107,7 @@ impl Field {
         self
     }
 
-    pub fn widen(mut self, new_type: Type) -> Field {
+    pub fn widen(mut self, new_type: Type) -> Self {
         self.t = new_type;
         for segment in &mut self.segments {
             segment.widen(new_type);
@@ -116,11 +116,11 @@ impl Field {
         self
     }
 
-    pub fn name(&self) -> Name {
+    pub const fn name(&self) -> Name {
         self.name
     }
 
-    pub fn t(&self) -> Type {
+    pub const fn t(&self) -> Type {
         self.t
     }
 

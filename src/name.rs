@@ -7,13 +7,13 @@ pub struct Name(char);
 impl Name {
     pub fn new(raw_name: char) -> Result<Self, String> {
         if raw_name.is_ascii_lowercase() {
-            Ok(Name(raw_name))
+            Ok(Self(raw_name))
         } else {
             Err(format!("'{raw_name}' is not a valid Name."))
         }
     }
 
-    pub fn to_char(self) -> char {
+    pub const fn to_char(self) -> char {
         self.0
     }
 

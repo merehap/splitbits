@@ -5,10 +5,10 @@ pub enum Base {
 }
 
 impl Base {
-    pub fn bits_per_digit(self) -> usize {
+    pub const fn bits_per_digit(self) -> usize {
         match self {
-            Base::Binary => 1,
-            Base::Hexadecimal => 4,
+            Self::Binary => 1,
+            Self::Hexadecimal => 4,
         }
     }
 }

@@ -16,31 +16,31 @@ pub enum Character {
 impl Character {
     pub fn from_char(c: char) -> Result<Self, String> {
         Ok(match c {
-            '.' => Character::Placeholder,
-            '0' => Character::Zero,
-            '1' => Character::One,
-            _   => Character::Name(Name::new(c)?),
+            '.' => Self::Placeholder,
+            '0' => Self::Zero,
+            '1' => Self::One,
+            _   => Self::Name(Name::new(c)?),
         })
     }
 
     pub fn is_literal(self) -> bool {
-        self == Character::Zero || self == Character::One
+        self == Self::Zero || self == Self::One
     }
 
-    pub fn to_name(self) -> Option<Name> {
-        if let Character::Name(name) = self {
+    pub const fn to_name(self) -> Option<Name> {
+        if let Self::Name(name) = self {
             Some(name)
         } else {
             None
         }
     }
 
-    pub fn to_char(self) -> char {
+    pub const fn to_char(self) -> char {
         match self {
-            Character::Placeholder => '.',
-            Character::Zero => '0',
-            Character::One  => '1',
-            Character::Name(name) => name.to_char(),
+            Self::Placeholder => '.',
+            Self::Zero => '0',
+            Self::One  => '1',
+            Self::Name(name) => name.to_char(),
         }
     }
 }
@@ -48,7 +48,7 @@ impl Character {
 pub struct Characters(Vec<Character>);
 
 impl Characters {
-    pub fn from_str(text: &str, base: Base) -> Characters {
+    pub fn from_str(text: &str, base: Base) -> Self {
         let characters: Vec<Character> = text.chars()
             // Spaces are only for human-readability.
             .filter(|&c| c != ' ')
@@ -56,7 +56,7 @@ impl Characters {
             .flat_map(|c| {
                 let characters: Box<dyn Iterator<Item = Character>>;
                 if base == Base::Hexadecimal {
-                    if let Some(array) = Characters::hex_digit_to_array(c) {
+                    if let Some(array) = Self::hex_digit_to_array(c) {
                         characters = Box::new(array.into_iter());
                         return characters;
                     }
@@ -73,7 +73,7 @@ impl Characters {
             .collect();
 
         assert!(characters.len() <= 128, "Template size was greater than 128 bits. Template: '{text}'");
-        Characters(characters)
+        Self(characters)
     }
 
     pub fn extract_literal(&self) -> Option<u128> {
@@ -111,11 +111,11 @@ impl Characters {
     }
 
     pub fn iter(&self) -> impl DoubleEndedIterator<Item=&Character> {
-        self.0.iter().clone()
+        self.0.iter()
     }
 
-    fn hex_digit_to_array(digit: char) -> Option<[Character; 4]> {
-        fn conv(value: u32) -> Character {
+    const fn hex_digit_to_array(digit: char) -> Option<[Character; 4]> {
+        const fn conv(value: u32) -> Character {
             if value == 0 { Character::Zero } else { Character::One }
         }
 

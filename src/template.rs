@@ -20,8 +20,8 @@ pub struct Template {
 }
 
 impl Template {
-    pub fn from_expr(expr: &Expr, base: Base, precision: Precision) -> Template {
-        let template_string = Template::template_string(expr);
+    pub fn from_expr(expr: &Expr, base: Base, precision: Precision) -> Self {
+        let template_string = Self::template_string(expr);
         reject_higher_base_chars(&template_string, base);
         let characters = Characters::from_str(&template_string, base);
 
@@ -48,7 +48,7 @@ impl Template {
             locations_by_name.push((name, locations));
         }
 
-        Template { input_type, precision, characters, locations_by_name }
+        Self { input_type, precision, characters, locations_by_name }
     }
 
     pub fn template_string(template: &Expr) -> String {
