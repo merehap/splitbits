@@ -212,13 +212,13 @@ fn combinebits_base(input: proc_macro::TokenStream, base: Base) -> proc_macro::T
     let mut parts: VecDeque<_> = parts.into_iter().collect();
     let on_overflow = match u8::try_from(parts.len()).unwrap() {
         0 => panic!("combinebits! must take at least one argument."),
-        1 => OnOverflow::Wrap,
+        1 => OnOverflow::Shrink,
         2..=255 => {
             if let Some(Setting::Overflow(on_overflow)) = parse_assignment(&parts[0]) {
                 parts.pop_front();
                 on_overflow
             } else {
-                OnOverflow::Wrap
+                OnOverflow::Shrink
             }
         }
     };
@@ -322,7 +322,7 @@ impl Setting {
         match Self::expr_to_ident(left)?.as_ref() {
             "overflow" => {
                 let overflow = match Self::expr_to_ident(right)?.as_ref() {
-                    "wrap" => OnOverflow::Wrap,
+                    "shrink" => OnOverflow::Shrink,
                     "panic" => OnOverflow::Panic,
                     "corrupt" => OnOverflow::Corrupt,
                     "saturate" => OnOverflow::Saturate,

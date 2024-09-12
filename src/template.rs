@@ -83,7 +83,7 @@ impl Template {
             let len = locations[0].len();
             let field = match on_overflow {
                 OnOverflow::Corrupt  => quote! { #t::from(#name) << #shift },
-                OnOverflow::Wrap     => quote! { (#t::from(#name) & (#mask as #t)) << #shift },
+                OnOverflow::Shrink   => quote! { (#t::from(#name) & (#mask as #t)) << #shift },
                 OnOverflow::Panic    => quote! {
                     {
                         let n = #t::from(#name);
@@ -229,8 +229,12 @@ fn reject_higher_base_chars(text: &str, base: Base) {
 // What behavior to use if a field is too big for its template slot during substitution.
 #[derive(Debug, Clone, Copy)]
 pub enum OnOverflow {
-    Wrap,
+    // Remove the upper bits that don't fit in the template slot.
+    Shrink,
+    // Panic if the field is too large for its slot.
     Panic,
+    // Allow oversized fields to corrupt the bits before them.
     Corrupt,
+    // Set all bits in the slot to 1s if the field is too large.
     Saturate,
 }

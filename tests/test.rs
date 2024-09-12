@@ -409,9 +409,9 @@ fn combine_overflow() {
 
 // Same as default behavior.
 #[test]
-fn combine_overflow_wrap() {
+fn combine_overflow_shrink() {
     let a: u8 = 0b1010_0101;
-    let result = combinebits!(overflow=wrap, "0aaa aaaa");
+    let result = combinebits!(overflow=shrink, "0aaa aaaa");
     assert_eq!(result, 0b0010_0101);
 }
 
