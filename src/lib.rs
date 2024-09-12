@@ -22,7 +22,8 @@ use syn::punctuated::Punctuated;
 
 use crate::base::Base;
 use crate::field::Field;
-use crate::template::{Template, OnOverflow};
+use crate::location::OnOverflow;
+use crate::template::Template;
 use crate::r#type::{Type, Precision, BitCount};
 
 // TODO:
@@ -321,14 +322,8 @@ impl Setting {
     fn parse(left: &Expr, right: &Expr) -> Result<Self, String> {
         match Self::expr_to_ident(left)?.as_ref() {
             "overflow" => {
-                let overflow = match Self::expr_to_ident(right)?.as_ref() {
-                    "shrink" => OnOverflow::Shrink,
-                    "panic" => OnOverflow::Panic,
-                    "corrupt" => OnOverflow::Corrupt,
-                    "saturate" => OnOverflow::Saturate,
-                    overflow => return Err(
-                        format!("'{overflow}' is an invalid overflow option. Options: 'wrap', 'panic', 'corrupt', 'saturate'.")),
-                };
+                let ident = Self::expr_to_ident(right)?;
+                let overflow = OnOverflow::parse(ident.as_ref())?;
                 Ok(Self::Overflow(overflow))
             },
             "min" => {
@@ -350,7 +345,7 @@ impl Setting {
         if let Expr::Path(path) = expr {
             path.path.get_ident()
                 .ok_or_else(|| format!("Can't convert expr path to a setting component. Expr path: {path:?}"))
-                .map(ToString::to_string)
+                .map(|ident| ident.to_string())
         } else {
             Err(format!("Can't convert expr to a setting component. Expr: {expr:?}"))
         }

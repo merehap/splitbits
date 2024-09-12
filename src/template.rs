@@ -10,6 +10,7 @@ use crate::character::{Character, Characters};
 use crate::field::Field;
 use crate::location::Location;
 use crate::name::Name;
+use crate::location::OnOverflow;
 use crate::r#type::{Type, Precision};
 
 /* A sequence of characters use to match and extract bit fields from an integer,
@@ -72,38 +73,10 @@ impl Template {
 
     // Capture variables from outside the the macro, substituting them into the template.
     pub fn combine_variables(&self, on_overflow: OnOverflow) -> TokenStream {
-        let t = self.width.to_token_stream();
         let mut field_streams = Vec::new();
         for (name, locations) in &self.locations_by_name {
             assert_eq!(locations.len(), 1);
-            let var = name.to_char();
-            let name = name.to_ident();
-            let shift = locations[0].mask_offset();
-            let mask = locations[0].to_unshifted_mask();
-            let len = locations[0].len();
-            let field = match on_overflow {
-                OnOverflow::Corrupt  => quote! { #t::from(#name) << #shift },
-                OnOverflow::Shrink   => quote! { (#t::from(#name) & (#mask as #t)) << #shift },
-                OnOverflow::Panic    => quote! {
-                    {
-                        let n = #t::from(#name);
-                        assert!(n <= #mask as #t,
-                            "Variable {} is too big for its location in the template. {n} > {} ({} bits)", #var, #mask, #len);
-                        n << #shift
-                    }
-                },
-                OnOverflow::Saturate => quote! {
-                    {
-                        let mut n = #t::from(#name);
-                        let mask = #mask as #t;
-                        if n > mask {
-                            n = mask;
-                        }
-                        n << #shift
-                    }
-                },
-            };
-            field_streams.push(field);
+            field_streams.push(locations[0].place_field_name(*name, self.width, on_overflow));
         }
 
         let mut literal_quote = quote! {};
@@ -211,6 +184,7 @@ impl Template {
         format_ident!("{}", format!("Fields·{}", struct_name_suffix))
     }
 }
+
 // TODO: Reject base 64 special characters.
 fn reject_higher_base_chars(text: &str, base: Base) {
     let banned_chars: BTreeSet<char> = match base {
@@ -224,17 +198,4 @@ fn reject_higher_base_chars(text: &str, base: Base) {
         "Invalid characters for base {} detected: {rejections:?}. Did you mean to use a higher base?",
         base as u8,
     );
-}
-
-// What behavior to use if a field is too big for its template slot during substitution.
-#[derive(Debug, Clone, Copy)]
-pub enum OnOverflow {
-    // Remove the upper bits that don't fit in the template slot.
-    Shrink,
-    // Panic if the field is too large for its slot.
-    Panic,
-    // Allow oversized fields to corrupt the bits before them.
-    Corrupt,
-    // Set all bits in the slot to 1s if the field is too large.
-    Saturate,
 }
