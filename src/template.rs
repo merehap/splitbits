@@ -12,21 +12,32 @@ use crate::location::Location;
 use crate::name::Name;
 use crate::r#type::{Type, Precision};
 
+/* A sequence of characters use to match and extract bit fields from an integer,
+ * or alternately to combine bit fields into an integer.
+ * For example, "aaabbcdd" will extract variables a, b, c, and d from a byte (u8),
+ * or can be used to combine variables a, b, c, and d into a byte.
+ */
 pub struct Template {
-    input_type: Type,
+    // How many bits of input the template will match against.
+    // Equal to the number of characters only in base 2.
+    width: Type,
+    // Whether the template will match arbitrary bit width fields, or just standard widths.
     precision: Precision,
+    // The template-legal characters contained in this template, in order.
     characters: Characters,
+    // The locations of the disjoint segments of each bit field, paired with the field name.
     locations_by_name: Vec<(Name, Vec<Location>)>,
 }
 
 impl Template {
+    // Create a Template from a String-format macro expression.
     pub fn from_expr(expr: &Expr, base: Base, precision: Precision) -> Self {
         let template_string = Self::template_string(expr);
         reject_higher_base_chars(&template_string, base);
         let characters = Characters::from_str(&template_string, base);
 
         let len: u8 = characters.len();
-        let input_type = Type::for_template(len);
+        let width = Type::for_template(len);
         let mut locations_by_name: Vec<(Name, Vec<Location>)> = Vec::new();
         for name in characters.to_names() {
             let locations: Vec<Location> = characters.iter()
@@ -48,27 +59,20 @@ impl Template {
             locations_by_name.push((name, locations));
         }
 
-        Self { input_type, precision, characters, locations_by_name }
+        Template { width, precision, characters, locations_by_name }
     }
 
-    pub fn template_string(template: &Expr) -> String {
-        let Expr::Lit(template) = template.clone() else { panic!() };
-        let Lit::Str(template) = template.lit else { panic!() };
-        template.value()
-    }
-
-    pub fn has_placeholders(&self) -> bool {
-        self.characters.has_placeholders()
-    }
-
+    // Extract the bit fields, as specified by the template, from the input expression.
+    // Upsize any fields to min_size.
     pub fn extract_fields(&self, input: &Expr, min_size: Option<Type>) -> Vec<Field> {
         self.locations_by_name.iter()
-            .map(|(name, locations)| Field::new(*name, self.input_type, input, self.precision, min_size, locations))
+            .map(|(name, locations)| Field::new(*name, self.width, input, self.precision, min_size, locations))
             .collect()
     }
 
+    // Capture variables from outside the the macro, substituting them into the template.
     pub fn combine_variables(&self, on_overflow: OnOverflow) -> TokenStream {
-        let t = self.input_type.to_token_stream();
+        let t = self.width.to_token_stream();
         let mut field_streams = Vec::new();
         for (name, locations) in &self.locations_by_name {
             assert_eq!(locations.len(), 1);
@@ -104,15 +108,16 @@ impl Template {
 
         let mut literal_quote = quote! {};
         if let Some(literal) = self.characters.extract_literal() {
-            let t = self.input_type.to_token_stream();
+            let t = self.width.to_token_stream();
             literal_quote = quote! { | (#literal as #t) };
         }
 
         quote! { (#(#field_streams)|*) #literal_quote }
     }
 
+    // Substitute macro arguments into the template.
     pub fn combine_with(&self, exprs: &[Expr]) -> TokenStream {
-        let t = self.input_type.to_token_stream();
+        let t = self.width.to_token_stream();
         let mut field_streams = Vec::new();
         assert_eq!(exprs.len(), self.locations_by_name.len(),
             "The number of inputs must be equal to the number of names in the template.",
@@ -126,15 +131,16 @@ impl Template {
 
         let mut literal_quote = quote! {};
         if let Some(literal) = self.characters.extract_literal() {
-            let t = self.input_type.to_token_stream();
+            let t = self.width.to_token_stream();
             literal_quote = quote! { | (#literal as #t) };
         }
 
         quote! { (#(#field_streams)|*) #literal_quote }
     }
 
+    // Replace bits in target with bits captured from variables outside the macro.
     pub fn replace(&self, target: &Expr) -> TokenStream {
-        let t = self.input_type.to_token_stream();
+        let t = self.width.to_token_stream();
         let mut mask = 0u128;
         let mut replacements = Vec::new();
         for (name, locations) in &self.locations_by_name {
@@ -149,7 +155,7 @@ impl Template {
         let mut literal_quote = quote! {};
         if let Some(literal) = self.characters.extract_literal() {
             mask |= self.characters.literal_mask();
-            let t = self.input_type.to_token_stream();
+            let t = self.width.to_token_stream();
             literal_quote = quote! { | (#literal as #t) };
         }
 
@@ -157,6 +163,8 @@ impl Template {
         quote! { (#target & #mask as #t) | (#(#replacements)|*) #literal_quote }
     }
 
+
+    // Substitute fields into template (not macro arguments nor captured from context).
     // WRONG ASSUMPTIONS:
     // * Each name only has a single segment.
     pub fn substitute_fields(&self, fields: Vec<Field>) -> TokenStream {
@@ -169,20 +177,33 @@ impl Template {
             let location = locations[0];
             let field = fields[name].clone()
                 .shift_left(location.mask_offset())
-                .widen(self.input_type);
+                .widen(self.width);
             assert_eq!(location.len(), field.len());
             field_streams.push(field.to_token_stream());
         }
 
         let mut literal_quote = quote! {};
         if let Some(literal) = self.characters.extract_literal() {
-            let t = self.input_type.to_token_stream();
+            let t = self.width.to_token_stream();
             literal_quote = quote! { | (#literal as #t) };
         }
 
         quote! { (#(#field_streams)|*) #literal_quote }
     }
 
+    // Convert a template expression into a String. Useful for error messages.
+    pub fn template_string(template: &Expr) -> String {
+        let Expr::Lit(template) = template.clone() else { panic!() };
+        let Lit::Str(template) = template.lit else { panic!() };
+        template.value()
+    }
+
+    // True if any placeholders (periods) are present. Used in APIs that don't accept placeholders.
+    pub fn has_placeholders(&self) -> bool {
+        self.characters.has_placeholders()
+    }
+
+    // Convert the template into a uniquely-identifying struct name.
     pub fn to_struct_name(&self) -> Ident {
         let struct_name_suffix: String = self.characters.to_string()
             // Underscores work in struct names, periods do not.
@@ -205,6 +226,7 @@ fn reject_higher_base_chars(text: &str, base: Base) {
     );
 }
 
+// What behavior to use if a field is too big for its template slot during substitution.
 #[derive(Debug, Clone, Copy)]
 pub enum OnOverflow {
     Wrap,
