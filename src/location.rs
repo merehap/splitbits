@@ -4,36 +4,45 @@ use quote::quote;
 use crate::name::Name;
 use crate::Type;
 
+// The location of a bit field segment within a template.
 #[derive(Clone, Copy)]
 pub struct Location {
-    pub len: u8,
+    // How wide the Location is.
+    pub width: u8,
+    // Where the Location starts within the Template.
     pub mask_offset: u8,
 }
 
 impl Location {
-    pub const fn len(self) -> u8 {
-        self.len
+    // How wide the Location is.
+    pub const fn width(self) -> u8 {
+        self.width
     }
 
+    // Where the Location starts within the Template.
     pub const fn mask_offset(self) -> u8 {
         self.mask_offset
     }
 
+    // Convert the Location to a bit mask: '1's within the location, '0's without.
     pub fn to_mask(self) -> u128 {
         self.to_unshifted_mask() << self.mask_offset
     }
 
+    // Convert the Location to a bit mask, but starting at the start of the template.
     pub fn to_unshifted_mask(self) -> u128 {
-        2u128.pow(u32::from(self.len)) - 1
+        2u128.pow(u32::from(self.width)) - 1
     }
 
+    /* Place the name of a field within its appropriate location in the template,
+     * using the specified OnOverflow behavior if it is too long.
+     */
     pub fn place_field_name(self, name: Name, width: Type, on_overflow: OnOverflow) -> TokenStream {
         let width = width.to_token_stream();
         let var = name.to_char();
         let name = name.to_ident();
         let shift = self.mask_offset();
         let mask = self.to_unshifted_mask();
-        let len = self.len();
         match on_overflow {
             OnOverflow::Corrupt  => quote! { #width::from(#name) << #shift },
             OnOverflow::Shrink   => quote! { (#width::from(#name) & (#mask as #width)) << #shift },
@@ -41,7 +50,7 @@ impl Location {
                 {
                     let n = #width::from(#name);
                     assert!(n <= #mask as #width,
-                        "Variable {} is too big for its location in the template. {n} > {} ({} bits)", #var, #mask, #len);
+                        "Variable {} is too big for its location in the template. {n} > {}", #var, #mask);
                     n << #shift
                 }
             },
@@ -73,6 +82,7 @@ pub enum OnOverflow {
 }
 
 impl OnOverflow {
+    // Convert a lower-case str into its corresponding OnOverflow value.
     pub fn parse(text: &str) -> Result<OnOverflow, String> {
         Ok(match text {
             "shrink" => OnOverflow::Shrink,

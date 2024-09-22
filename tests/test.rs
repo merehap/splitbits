@@ -416,7 +416,7 @@ fn combine_overflow_shrink() {
 }
 
 #[test]
-#[should_panic(expected = "Variable a is too big for its location in the template. 165 > 127 (7 bits)")]
+#[should_panic(expected = "Variable a is too big for its location in the template. 165 > 127")]
 fn combine_overflow_panic() {
     let a: u8 = 0b1010_0101;
     let result = combinebits!(overflow=panic, "0aaa aaaa");

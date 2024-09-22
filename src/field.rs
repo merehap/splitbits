@@ -9,14 +9,21 @@ use crate::location::Location;
 use crate::segment::Segment;
 use crate::r#type::{Type, Precision};
 
+/* A bit field to be extracted from input in accordance with a Template.
+ * A Field can be split over multiple segments in different locations in the Template.
+ */
 #[derive(Clone)]
 pub struct Field {
     name: Name,
     segments: Vec<Segment>,
-    t: Type,
+    bit_width: Type,
 }
 
 impl Field {
+    /* Create a new Field, given the input expression and the segment locations within the input.
+     * By default, the Field will use the smallest type needed to store it. This can be overriden
+     * by setting min_size.
+     */
     pub fn new(
         name: Name,
         input_type: Type,
@@ -25,27 +32,32 @@ impl Field {
         min_size: Option<Type>,
         locations: &[Location],
     ) -> Self {
+        // Create one Segment per Location, increasing the segment offset as it goes.
         let mut segment_offset = 0;
         let mut segments = Vec::new();
         for &location in locations {
             let segment = Segment::new(input.clone(), input_type, location, segment_offset);
-            segment_offset += location.len();
+            segment_offset += location.width();
             segments.push(segment);
         }
 
-        let bit_count = locations.iter().map(|location| location.len()).sum();
-        let mut t = Type::for_field(bit_count, precision);
-        if let Some(min_size) = min_size && min_size > t {
-            t = min_size;
+        // Determine the appropriate bit width needed for this Field.
+        let bit_width = locations.iter()
+            .map(|location| location.width())
+            .sum();
+        let mut bit_width = Type::for_field(bit_width, precision);
+        if let Some(min_size) = min_size && min_size > bit_width {
+            bit_width = min_size;
         }
 
-        Self { name, segments, t }
+        Self { name, segments, bit_width }
     }
 
+    // Convert the Field into its macro expansion format, either "bool" or "uX".
     pub fn to_token_stream(&self) -> TokenStream {
-        let t = self.t.to_token_stream();
+        let t = self.bit_width.to_token_stream();
         let mut segments = self.segments.iter().map(Segment::to_token_stream);
-        if self.t == Type::Bool {
+        if self.bit_width == Type::Bool {
             let segment = segments.next().unwrap();
             quote! { (#segment) != 0 }
         } else {
@@ -53,6 +65,7 @@ impl Field {
         }
     }
 
+    // Merge two collections of fields into one, removing duplicates.
     pub fn merge(upper: &[Self], lower: &[Self]) -> Vec<Self> {
         let lower_map: BTreeMap<_, _> = lower.iter()
             .map(|field| (field.name, field))
@@ -69,6 +82,7 @@ impl Field {
         let upper_map: BTreeMap<_, _> = upper.iter()
             .map(|field| (field.name, field))
             .collect();
+        // Only push Fields from the lower map if they weren't already pushed from the upper map.
         for l in lower {
             if !upper_map.contains_key(&l.name) {
                 result.push(l.clone());
@@ -78,15 +92,18 @@ impl Field {
         result
     }
 
+    // Combine two Fields into one (their names must match).
     pub fn concat(&self, lower: &Self) -> Self {
         assert_eq!(self.name, lower.name);
 
         let mut new_segments = Vec::new();
+        // Shift all of the existing Segments to the left to make room for the new segments.
         for segment in &self.segments {
-            let new_segment = segment.clone().set_output_offset(lower.len());
+            let new_segment = segment.clone().set_output_offset(lower.width());
             new_segments.push(new_segment);
         }
 
+        // Add all the new segments (they get to keep their original offsets).
         for segment in &lower.segments {
             new_segments.push(segment.clone());
         }
@@ -94,10 +111,11 @@ impl Field {
         Self {
             name: self.name,
             segments: new_segments,
-            t: self.t.concat(lower.t),
+            bit_width: self.bit_width.concat(lower.bit_width),
         }
     }
 
+    // Shift all segments to the left.
     // TODO: Fail on overflow.
     pub fn shift_left(mut self, shift: u8) -> Self {
         for segment in &mut self.segments {
@@ -107,26 +125,30 @@ impl Field {
         self
     }
 
-    pub fn widen(mut self, new_type: Type) -> Self {
-        self.t = new_type;
+    // Widen all segments.
+    pub fn widen(mut self, new_bit_width: Type) -> Self {
+        self.bit_width = new_bit_width;
         for segment in &mut self.segments {
-            segment.widen(new_type);
+            segment.widen(new_bit_width);
         }
 
         self
     }
 
+    // The Field's single-letter name.
     pub const fn name(&self) -> Name {
         self.name
     }
 
-    pub const fn t(&self) -> Type {
-        self.t
+    // How many bits are contained in this Field.
+    pub const fn bit_width(&self) -> Type {
+        self.bit_width
     }
 
-    pub fn len(&self) -> u8 {
+    // TODO: Determine how this is used differently from bit_width().
+    pub fn width(&self) -> u8 {
         self.segments.iter()
-            .map(Segment::len)
+            .map(Segment::width)
             .sum()
     }
 }

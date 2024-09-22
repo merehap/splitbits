@@ -1,3 +1,4 @@
+// The numeric base that the Template input data is in.
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum Base {
     Binary = 2,
@@ -5,6 +6,7 @@ pub enum Base {
 }
 
 impl Base {
+    // How many bits are needed to represent a single digit of this Base.
     pub const fn bits_per_digit(self) -> usize {
         match self {
             Self::Binary => 1,

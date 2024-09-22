@@ -7,6 +7,7 @@ use syn::Expr;
 use crate::location::Location;
 use crate::r#type::Type;
 
+// A portion of a Field within a Template.
 #[derive(Clone)]
 pub struct Segment {
     input: Expr,
@@ -16,15 +17,18 @@ pub struct Segment {
 }
 
 impl Segment {
+    // Create a new Segment from a syn Expr.
     pub const fn new(input: Expr, t: Type, location: Location, offset: u8) -> Self {
         Self { input, t, location, offset }
     }
 
+    // Offset this Segment further within the Template.
     pub fn set_output_offset(&mut self, output_offset: u8) -> Self {
         self.offset += output_offset;
         self.clone()
     }
 
+    // Increase how much space the Segment takes up, without changing its value Expr.
     pub fn widen(&mut self, new_type: Type) -> Self {
         if new_type > self.t {
             self.t = new_type;
@@ -33,10 +37,9 @@ impl Segment {
         self.clone()
     }
 
-    fn shift(&self) -> i16 {
-        i16::from(self.location.mask_offset()) - i16::from(self.offset)
-    }
-
+    /* Convert the Segment into how it will appear in the macro expansion.
+     * It may have a left shift, a right shift, or no shift.
+     */
     pub fn to_token_stream(&self) -> TokenStream {
         let input = &self.input;
         let ordering = self.shift().cmp(&0);
@@ -53,7 +56,12 @@ impl Segment {
         quote! { (#input as #t & #mask as #t) #shifter }
     }
 
-    pub const fn len(&self) -> u8 {
-        self.location.len()
+    // The width of the segment.
+    pub const fn width(&self) -> u8 {
+        self.location.width()
+    }
+
+    fn shift(&self) -> i16 {
+        i16::from(self.location.mask_offset()) - i16::from(self.offset)
     }
 }

@@ -37,8 +37,7 @@ impl Template {
         reject_higher_base_chars(&template_string, base);
         let characters = Characters::from_str(&template_string, base);
 
-        let len: u8 = characters.len();
-        let width = Type::for_template(len);
+        let width = Type::for_template(characters.width());
         let mut locations_by_name: Vec<(Name, Vec<Location>)> = Vec::new();
         for name in characters.to_names() {
             let locations: Vec<Location> = characters.iter()
@@ -49,9 +48,9 @@ impl Template {
                 .filter_map(|(c, segment)| {
                     if c == Character::Name(name) {
                         let segment: Vec<_> = segment.collect();
-                        let len = segment.len().try_into().unwrap();
+                        let width = segment.len().try_into().unwrap();
                         let mask_offset = segment[0].0.try_into().unwrap();
-                        Some(Location { len, mask_offset })
+                        Some(Location { width, mask_offset })
                     } else {
                         None
                     }
@@ -151,7 +150,7 @@ impl Template {
             let field = fields[name].clone()
                 .shift_left(location.mask_offset())
                 .widen(self.width);
-            assert_eq!(location.len(), field.len());
+            assert_eq!(location.width(), field.width());
             field_streams.push(field.to_token_stream());
         }
 

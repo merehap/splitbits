@@ -5,15 +5,23 @@ use itertools::Itertools;
 use crate::Base;
 use crate::name::Name;
 
+/* A single legal character for a template in its base 2 form.
+ * Higher bases must be converted to base 2 to use this.
+ */
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum Character {
+    // A character that is legal within a field name.
     Name(Name),
+    // A period '.', indicating that the template will ignore the matching bit.
     Placeholder,
+    // A literal '0' bit.
     Zero,
+    // A literal '1' bit.
     One,
 }
 
 impl Character {
+    // Attempt to convert a unicode char to a Character.
     pub fn from_char(c: char) -> Result<Self, String> {
         Ok(match c {
             '.' => Self::Placeholder,
@@ -23,10 +31,12 @@ impl Character {
         })
     }
 
+    // Whether the character is a literal '0' or '1'.
     pub fn is_literal(self) -> bool {
         self == Self::Zero || self == Self::One
     }
 
+    // Convert the character to a Name, if it is a valid Name.
     pub const fn to_name(self) -> Option<Name> {
         if let Self::Name(name) = self {
             Some(name)
@@ -35,6 +45,7 @@ impl Character {
         }
     }
 
+    // Convert the character to a unicode char.
     pub const fn to_char(self) -> char {
         match self {
             Self::Placeholder => '.',
@@ -45,9 +56,17 @@ impl Character {
     }
 }
 
+/* Contains consecutive values of type Character.
+ * Used as the backing store for a Template.
+ * Maximum length is 128.
+ */
 pub struct Characters(Vec<Character>);
 
 impl Characters {
+    /* Given a numeric Base, convert a str to a Characters type.
+     * Strips out any spaces as those are for human-reability.
+     * Converts non-binary literals into binary literals.
+     */
     pub fn from_str(text: &str, base: Base) -> Self {
         let characters: Vec<Character> = text.chars()
             // Spaces are only for human-readability.
@@ -76,6 +95,10 @@ impl Characters {
         Self(characters)
     }
 
+    /* Get the literal that the template corresponds to.
+     * Effectively, return the '1's among the Characters, converting everything else to '0's.
+     * Return None if there are no literal digits in the template.
+     */
     pub fn extract_literal(&self) -> Option<u128> {
         if !self.0.iter().any(|c| c.is_literal()) {
             return None;
@@ -87,6 +110,7 @@ impl Characters {
         Some(u128::from_str_radix(&literal_string, 2).unwrap())
     }
 
+    // Return '1's where the there is a literal Character, '0's everywhere else.
     pub fn literal_mask(&self) -> u128 {
         let literal_string: String = self.0.iter()
             .map(|&c| if c == Character::Zero || c == Character::One { '1' } else { '0' })
@@ -94,11 +118,13 @@ impl Characters {
         u128::from_str_radix(&literal_string, 2).unwrap()
     }
 
+    // Return true if there are any periods among the Characters.
     pub fn has_placeholders(&self) -> bool {
         self.0.iter()
             .any(|&character| character == Character::Placeholder)
     }
 
+    // Extract all the unique names that are present in the Characters.
     pub fn to_names(&self) -> Vec<Name> {
         self.0.iter()
             .filter_map(|c| c.to_name())
@@ -106,14 +132,17 @@ impl Characters {
             .collect()
     }
 
-    pub fn len(&self) -> u8 {
+    // The count of Characters.
+    pub fn width(&self) -> u8 {
         u8::try_from(self.0.len()).unwrap()
     }
 
+    // Iterate from the first to the last Character.
     pub fn iter(&self) -> impl DoubleEndedIterator<Item=&Character> {
         self.0.iter()
     }
 
+    // Hexadecimal digits correspond to 4 (binary) entries of type Character.
     const fn hex_digit_to_array(digit: char) -> Option<[Character; 4]> {
         const fn conv(value: u32) -> Character {
             if value == 0 { Character::Zero } else { Character::One }

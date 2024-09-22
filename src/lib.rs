@@ -152,7 +152,7 @@ fn splitbits_base(
 
     let struct_name = template.to_struct_name();
     let names: Vec<_> = fields.iter().map(|field| field.name().to_ident()).collect();
-    let types: Vec<_> = fields.iter().map(|field| field.t().to_token_stream()).collect();
+    let types: Vec<_> = fields.iter().map(|field| field.bit_width().to_token_stream()).collect();
     let values: Vec<TokenStream> = fields.iter().map(Field::to_token_stream).collect();
     let result = quote! {
         {

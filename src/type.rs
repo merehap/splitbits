@@ -3,6 +3,10 @@ use std::fmt;
 use proc_macro2::TokenStream;
 use quote::{quote, format_ident};
 
+/* What type is associated with a Field, field Segment, or Template.
+ * Can be a numeric type or a boolean.
+ * There are two 1-bit types: bool and u1.
+ */
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 pub enum Type {
     Bool,
@@ -10,19 +14,24 @@ pub enum Type {
 }
 
 impl Type {
-    pub fn for_template(len: u8) -> Self {
-        let bit_count = BitCount::new(len).unwrap();
-        match len {
-            8 | 16 | 32 | 64 | 128 => Self::Num(bit_count),
-            len => panic!("Template length must be 8, 16, 32, 64, or 128, but was {len}."),
+    // Create a valid Type for a Template given a template width.
+    pub fn for_template(bit_count: u8) -> Self {
+        match bit_count {
+            8 | 16 | 32 | 64 | 128 => Self::Num(BitCount::new(bit_count).unwrap()),
+            _ => panic!("Template width must be 8, 16, 32, 64, or 128, but was {bit_count}."),
         }
     }
 
-    pub fn for_field(len: u8, precision: Precision) -> Self {
-        match len {
+    /* Determine what Type is needed for a Field that has the specified width and Precision.
+     * Ux Precision means the Type will exactly match the width.
+     * Standard Precision will result in the Type being the smallest built-in integer type that is
+     * equal to or larger than the specified bit_count.
+     */
+    pub fn for_field(bit_count: u8, precision: Precision) -> Self {
+        match bit_count {
             0 => panic!(),
             1 => Self::Bool,
-            1..=128 if precision == Precision::Ux => Self::Num(BitCount::new(len).unwrap()),
+            1..=128 if precision == Precision::Ux => Self::Num(BitCount::new(bit_count).unwrap()),
             2..=8    => Self::Num(BitCount::U8),
             9..=16   => Self::Num(BitCount::U16),
             17..=32  => Self::Num(BitCount::U32),
@@ -32,6 +41,7 @@ impl Type {
         }
     }
 
+    // Return true if the Type corresponds to a built-in type (bool, u8, u16, u32, u64, u128).
     pub const fn is_standard(self) -> bool {
         match self {
             Self::Bool => true,
@@ -39,10 +49,12 @@ impl Type {
         }
     }
 
+    // Combine two Types to create a larger, Standard-precision type.
     pub fn concat(self, other: Self) -> Self {
-        Self::for_field(self.size() + other.size(), Precision::Standard)
+        Self::for_field(self.bit_count() + other.bit_count(), Precision::Standard)
     }
 
+    // Convert the Type to how it will appear in the macro expansion (e.g. bool, u7, u32).
     pub fn to_token_stream(self) -> TokenStream {
         let ident = format_ident!("{}", self.to_string());
         if self.is_standard() {
@@ -52,7 +64,8 @@ impl Type {
         }
     }
 
-    pub const fn size(self) -> u8 {
+    // How many bits the Type corresponds to.
+    pub const fn bit_count(self) -> u8 {
         match self {
             Self::Bool => 1,
             Self::Num(n) => n.0,
@@ -69,12 +82,15 @@ impl fmt::Display for Type {
     }
 }
 
+// Whether only bool, u8, u16, u32, u64, and u128 should be used, or if any ux types up to u127 are
+// allowable too.
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum Precision {
     Standard,
     Ux,
 }
 
+// Allowable bit counts for a Type. Anything from 1 to 128.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 pub struct BitCount(u8);
 
@@ -85,6 +101,7 @@ impl BitCount {
     pub const U64: Self = Self(64);
     pub const U128: Self = Self(128);
 
+    // Create a new BitCount, failing if 0 or >128 are provided.
     pub fn new(count: u8) -> Result<Self, String> {
         match count {
             0 => Err("u0 is not a valid type of integer. BitCount must be positive.".into()),
