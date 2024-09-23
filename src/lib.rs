@@ -24,7 +24,7 @@ use crate::base::Base;
 use crate::field::Field;
 use crate::location::OnOverflow;
 use crate::template::Template;
-use crate::r#type::{Type, Precision, BitCount};
+use crate::r#type::{Type, Precision};
 
 // TODO:
 // * Ensure overflow behavior usability in const contexts.
@@ -213,13 +213,17 @@ fn combinebits_base(input: proc_macro::TokenStream, base: Base) -> proc_macro::T
     let mut parts: VecDeque<_> = parts.into_iter().collect();
     let on_overflow = match u8::try_from(parts.len()).unwrap() {
         0 => panic!("combinebits! must take at least one argument."),
-        1 => OnOverflow::Shrink,
+        1 => OnOverflow::Truncate,
         2..=255 => {
-            if let Some(Setting::Overflow(on_overflow)) = parse_assignment(&parts[0]) {
-                parts.pop_front();
-                on_overflow
+            if let Some((left, right)) = parse_assignment(&parts[0]) {
+                if left == "overflow" {
+                    parts.pop_front();
+                    OnOverflow::parse(&right).unwrap()
+                } else {
+                    OnOverflow::Truncate
+                }
             } else {
-                OnOverflow::Shrink
+                OnOverflow::Truncate
             }
         }
     };
@@ -276,9 +280,12 @@ fn parse_input(item: TokenStream, base: Base, precision: Precision, literals_all
 
     let mut min_size = None;
     if parts.len() == 3 {
-        if let Some(Setting::MinFieldSize(size)) = parse_assignment(&parts[0]) {
-            assert!(precision != Precision::Standard || size.is_standard(), "Type '{size}' is only supported in _ux macros.");
-            min_size = Some(size);
+        if let Some((left, right)) = parse_assignment(&parts[0]) {
+            if left == "min" {
+                let size = Type::parse(right).unwrap();
+                assert!(precision != Precision::Standard || size.is_standard(), "Type '{size}' is only supported in _ux macros.");
+                min_size = Some(size);
+            }
         } else {
             panic!();
         }
@@ -305,49 +312,20 @@ enum LiteralsAllowed {
     Yes,
 }
 
-fn parse_assignment(expr: &Expr) -> Option<Setting> {
+fn parse_assignment(expr: &Expr) -> Option<(String, String)> {
     if let Expr::Assign(ExprAssign { left, right, ..}) = expr {
-        Some(Setting::parse(left, right).unwrap())
+        Some((expr_to_ident(left).unwrap(), expr_to_ident(right).unwrap()))
     } else {
         None
     }
 }
 
-enum Setting {
-    Overflow(OnOverflow),
-    MinFieldSize(Type),
-}
-
-impl Setting {
-    fn parse(left: &Expr, right: &Expr) -> Result<Self, String> {
-        match Self::expr_to_ident(left)?.as_ref() {
-            "overflow" => {
-                let ident = Self::expr_to_ident(right)?;
-                let overflow = OnOverflow::parse(ident.as_ref())?;
-                Ok(Self::Overflow(overflow))
-            },
-            "min" => {
-                let mut min: String = Self::expr_to_ident(right)?;
-                if &min == "bool" {
-                    Ok(Self::MinFieldSize(Type::Bool))
-                } else {
-                    let u = min.remove(0);
-                    assert_eq!(u, 'u');
-                    let min: u8 = min.parse().unwrap();
-                    Ok(Self::MinFieldSize(Type::Num(BitCount::new(min).unwrap())))
-                }
-            }
-            name => Err(format!("'{name}' is not a supported setting.")),
-        }
-    }
-
-    fn expr_to_ident(expr: &Expr) -> Result<String, String> {
-        if let Expr::Path(path) = expr {
-            path.path.get_ident()
-                .ok_or_else(|| format!("Can't convert expr path to a setting component. Expr path: {path:?}"))
-                .map(|ident| ident.to_string())
-        } else {
-            Err(format!("Can't convert expr to a setting component. Expr: {expr:?}"))
-        }
+fn expr_to_ident(expr: &Expr) -> Result<String, String> {
+    if let Expr::Path(path) = expr {
+        path.path.get_ident()
+            .ok_or_else(|| format!("Can't convert expr path to a setting component. Expr path: {path:?}"))
+            .map(|ident| ident.to_string())
+    } else {
+        Err(format!("Can't convert expr to a setting component. Expr: {expr:?}"))
     }
 }

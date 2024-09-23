@@ -45,7 +45,7 @@ impl Location {
         let mask = self.to_unshifted_mask();
         match on_overflow {
             OnOverflow::Corrupt  => quote! { #width::from(#name) << #shift },
-            OnOverflow::Shrink   => quote! { (#width::from(#name) & (#mask as #width)) << #shift },
+            OnOverflow::Truncate => quote! { (#width::from(#name) & (#mask as #width)) << #shift },
             OnOverflow::Panic    => quote! {
                 {
                     let n = #width::from(#name);
@@ -72,7 +72,7 @@ impl Location {
 #[derive(Debug, Clone, Copy)]
 pub enum OnOverflow {
     // Remove the upper bits that don't fit in the template slot.
-    Shrink,
+    Truncate,
     // Panic if the field is too large for its slot.
     Panic,
     // Allow oversized fields to corrupt the bits before them.
@@ -85,7 +85,7 @@ impl OnOverflow {
     // Convert a lower-case str into its corresponding OnOverflow value.
     pub fn parse(text: &str) -> Result<OnOverflow, String> {
         Ok(match text {
-            "shrink" => OnOverflow::Shrink,
+            "shrink" => OnOverflow::Truncate,
             "panic" => OnOverflow::Panic,
             "corrupt" => OnOverflow::Corrupt,
             "saturate" => OnOverflow::Saturate,

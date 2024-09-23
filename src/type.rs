@@ -41,6 +41,21 @@ impl Type {
         }
     }
 
+    // Attempt to convert a lowercase str into a Type.
+    pub fn parse(mut text: String) -> Result<Self, String> {
+        if &text == "bool" {
+            return Ok(Type::Bool);
+        }
+
+        let u = text.remove(0);
+        if u != 'u' {
+            return Err("Type str must start with 'u' or equal 'bool'.".into());
+        }
+
+        let count: u8 = text.parse().unwrap();
+        Ok(Type::Num(BitCount::new(count).unwrap()))
+    }
+
     // Return true if the Type corresponds to a built-in type (bool, u8, u16, u32, u64, u128).
     pub const fn is_standard(self) -> bool {
         match self {
