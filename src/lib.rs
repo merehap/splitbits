@@ -12,8 +12,6 @@ mod segment;
 mod template;
 mod r#type;
 
-use std::collections::VecDeque;
-
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Token, Expr, ExprAssign};
@@ -286,22 +284,19 @@ fn parse_splitbits_input(
     literals_allowed: LiteralsAllowed,
 ) -> (Expr, Template, Option<Type>) {
     let parts = Parser::parse2(Punctuated::<Expr, Token![,]>::parse_terminated, item).unwrap();
-    let mut parts: VecDeque<_> = parts.into_iter().collect();
+    let mut parts: Vec<_> = parts.into_iter().collect();
     assert!(parts.len() == 2 || parts.len() == 3);
 
     let mut min_size = None;
     if parts.len() == 3 {
-        if let Some((left, right)) = parse_assignment(&parts[0]) {
-            if left == "min" {
-                let size = Type::parse(right).unwrap();
-                assert!(precision != Precision::Standard || size.is_standard(), "Type '{size}' is only supported in _ux macros.");
-                min_size = Some(size);
-            }
-        } else {
-            panic!();
-        }
+        let (setting, value) = parse_assignment(&parts[0])
+            .expect("the first argument to be a 'min' setting since three arguments were supplied");
+        assert_eq!(setting, "min", "Only 'min' is allowed as a setting.");
+        let size = Type::parse(value).unwrap();
+        assert!(precision != Precision::Standard || size.is_standard(), "Type '{size}' is only supported in _ux macros.");
+        min_size = Some(size);
 
-        parts.pop_front();
+        parts.remove(0);
     }
 
     if literals_allowed == LiteralsAllowed::No {
