@@ -148,7 +148,8 @@ fn splitbits_base(
     base: Base,
     precision: Precision,
 ) -> proc_macro::TokenStream {
-    let (value, template, min_size) = parse_input(input.into(), base, precision, LiteralsAllowed::No);
+    let (value, template, min_size) =
+        parse_splitbits_input(input.into(), base, precision, LiteralsAllowed::No);
     let fields = template.extract_fields(&value, min_size);
 
     let struct_name = template.to_struct_name();
@@ -175,7 +176,8 @@ fn splitbits_named_base(
     base: Base,
     precision: Precision,
 ) -> proc_macro::TokenStream {
-    let (value, template, min_size) = parse_input(input.into(), base, precision, LiteralsAllowed::No);
+    let (value, template, min_size) =
+        parse_splitbits_input(input.into(), base, precision, LiteralsAllowed::No);
     let fields = template.extract_fields(&value, min_size);
     let values: Vec<TokenStream> = fields.iter().map(Field::to_token_stream).collect();
 
@@ -193,7 +195,8 @@ fn splitbits_named_into_base(
     base: Base,
     precision: Precision,
 ) -> proc_macro::TokenStream {
-    let (value, template, min_size) = parse_input(input.into(), base, precision, LiteralsAllowed::No);
+    let (value, template, min_size) =
+        parse_splitbits_input(input.into(), base, precision, LiteralsAllowed::No);
     let fields = template.extract_fields(&value, min_size);
     let values: Vec<TokenStream> = fields.iter().map(Field::to_token_stream).collect();
 
@@ -214,30 +217,26 @@ fn combinebits_base(
         Punctuated::<Expr, Token![,]>::parse_terminated,
         input.into(),
     ).unwrap();
-    let mut parts: VecDeque<_> = parts.into_iter().collect();
-    let on_overflow = match u8::try_from(parts.len()).unwrap() {
-        0 => panic!("combinebits! must take at least one argument."),
-        1 => OnOverflow::Truncate,
-        2..=255 => {
-            if let Some((setting, value)) = parse_assignment(&parts[0]) {
-                assert_eq!(setting, "overflow",
-                    "Only the 'overflow' setting is supported, but found '{setting}'.");
-                parts.pop_front();
-                OnOverflow::parse(&value).unwrap()
-            } else {
-                OnOverflow::Truncate
-            }
-        }
-    };
+    let mut parts: Vec<_> = parts.into_iter().collect();
+    assert!(!parts.is_empty(), "combinebits! must take at least one argument.");
 
-    let template = Template::from_expr(&parts.pop_back().unwrap(), base, Precision::Ux);
+    let mut on_overflow = OnOverflow::Truncate;
+    // If we've got more than one argument, the first one might be an overflow setting.
+    if let [assignment, _, ..] = &parts[..] &&
+       let Some((setting, value)) = parse_assignment(assignment) {
+        assert_eq!(setting, "overflow",
+            "Only the 'overflow' setting is supported, but found '{setting}'.");
+        parts.remove(0);
+        on_overflow = OnOverflow::parse(&value).unwrap();
+    }
+
+    let template = Template::from_expr(&parts.pop().unwrap(), base, Precision::Ux);
     if parts.is_empty() {
+        // No arguments passed, so take them from the variables preceeding the macro instead.
         template.combine_with_context(on_overflow).into()
     } else {
-        // Everything except the last argument is an input variable.
-        parts.make_contiguous();
-        // TODO: Does OnOverflow need to be passed here?
-        template.combine_with_args(parts.as_slices().0).into()
+        // TODO: OnOverflow needs to be passed here.
+        template.combine_with_args(&parts[..]).into()
     }
 }
 
@@ -273,13 +272,14 @@ fn replacebits_base(
     base: Base,
     precision: Precision,
 ) -> proc_macro::TokenStream {
-    let (value, template, min_size) = parse_input(input.into(), base, precision, LiteralsAllowed::Yes);
+    let (value, template, min_size) =
+        parse_splitbits_input(input.into(), base, precision, LiteralsAllowed::Yes);
     assert_eq!(min_size, None);
     let result = template.replace(&value);
     result.into()
 }
 
-fn parse_input(
+fn parse_splitbits_input(
     item: TokenStream,
     base: Base,
     precision: Precision,
