@@ -1,0 +1,9 @@
+error: proc macro panicked
+ --> tests/compile_failures/combine_inputs_not_equal.rs:5:18
+  |
+5 |     let result = combinebits!(x, "aaaa aaaa bbbb bbbb");
+  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: assertion `left == right` failed: The number of inputs must be equal to the number of names in the template.
+            left: 1
+           right: 2

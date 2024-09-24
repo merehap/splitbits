@@ -1,0 +1,7 @@
+error[E0425]: cannot find value `b` in this scope
+ --> tests/compile_failures/combine_inputs_missing.rs:5:18
+  |
+5 |     let result = combinebits!("aaaa aaaa bbbb bbbb");
+  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: a local variable with a similar name exists: `a`
+  |
+  = note: this error originates in the macro `combinebits` (in Nightly builds, run with -Z macro-backtrace for more info)
