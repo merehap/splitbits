@@ -27,12 +27,13 @@ use crate::template::Template;
 use crate::r#type::{Type, Precision};
 
 // TODO:
-// * Ensure overflow behavior usability in const contexts.
 // * Better error messages.
 // * Tests that confirm non-compilation cases.
+// ** Bad setting. Bad setting value.
 // * splitbits_named_into isn't into-ing.
 // * Support splitting inputs across multiple output segments.
 // After 0.1.0:
+// * Ensure overflow behavior usability in const contexts.
 // * Add base 8, base 32, and base 64.
 // ** Add build-your-own splitbits with other Bases.
 // * Enable splitbits to fail if literal pattern not matched
@@ -205,7 +206,10 @@ fn splitbits_named_into_base(
     }.into()
 }
 
-fn combinebits_base(input: proc_macro::TokenStream, base: Base) -> proc_macro::TokenStream {
+fn combinebits_base(
+    input: proc_macro::TokenStream,
+    base: Base,
+) -> proc_macro::TokenStream {
     let parts = Parser::parse2(
         Punctuated::<Expr, Token![,]>::parse_terminated,
         input.into(),
@@ -215,13 +219,11 @@ fn combinebits_base(input: proc_macro::TokenStream, base: Base) -> proc_macro::T
         0 => panic!("combinebits! must take at least one argument."),
         1 => OnOverflow::Truncate,
         2..=255 => {
-            if let Some((left, right)) = parse_assignment(&parts[0]) {
-                if left == "overflow" {
-                    parts.pop_front();
-                    OnOverflow::parse(&right).unwrap()
-                } else {
-                    OnOverflow::Truncate
-                }
+            if let Some((setting, value)) = parse_assignment(&parts[0]) {
+                assert_eq!(setting, "overflow",
+                    "Only the 'overflow' setting is supported, but found '{setting}'.");
+                parts.pop_front();
+                OnOverflow::parse(&value).unwrap()
             } else {
                 OnOverflow::Truncate
             }
@@ -230,12 +232,12 @@ fn combinebits_base(input: proc_macro::TokenStream, base: Base) -> proc_macro::T
 
     let template = Template::from_expr(&parts.pop_back().unwrap(), base, Precision::Ux);
     if parts.is_empty() {
-        template.combine_variables(on_overflow).into()
+        template.combine_with_context(on_overflow).into()
     } else {
         // Everything except the last argument is an input variable.
         parts.make_contiguous();
         // TODO: Does OnOverflow need to be passed here?
-        template.combine_with(parts.as_slices().0).into()
+        template.combine_with_args(parts.as_slices().0).into()
     }
 }
 
@@ -258,22 +260,31 @@ fn split_then_combine_base(input: proc_macro::TokenStream, base: Base) -> proc_m
     if target.has_placeholders() {
         let bad_template = Template::template_string(expr);
         panic!(
-            "Target template ({bad_template}) must not have placeholders (periods) in it. Use literals instead as appropriate.",
-        );
+            "Target template ({bad_template}) must not have placeholders (periods) in it. \
+            Use literals instead as appropriate.");
     }
 
     let result = target.substitute_fields(fields);
     result.into()
 }
 
-fn replacebits_base(input: proc_macro::TokenStream, base: Base, precision: Precision) -> proc_macro::TokenStream {
+fn replacebits_base(
+    input: proc_macro::TokenStream,
+    base: Base,
+    precision: Precision,
+) -> proc_macro::TokenStream {
     let (value, template, min_size) = parse_input(input.into(), base, precision, LiteralsAllowed::Yes);
     assert_eq!(min_size, None);
     let result = template.replace(&value);
     result.into()
 }
 
-fn parse_input(item: TokenStream, base: Base, precision: Precision, literals_allowed: LiteralsAllowed) -> (Expr, Template, Option<Type>) {
+fn parse_input(
+    item: TokenStream,
+    base: Base,
+    precision: Precision,
+    literals_allowed: LiteralsAllowed,
+) -> (Expr, Template, Option<Type>) {
     let parts = Parser::parse2(Punctuated::<Expr, Token![,]>::parse_terminated, item).unwrap();
     let mut parts: VecDeque<_> = parts.into_iter().collect();
     assert!(parts.len() == 2 || parts.len() == 3);

@@ -409,9 +409,9 @@ fn combine_overflow() {
 
 // Same as default behavior.
 #[test]
-fn combine_overflow_shrink() {
+fn combine_overflow_truncate() {
     let a: u8 = 0b1010_0101;
-    let result = combinebits!(overflow=shrink, "0aaa aaaa");
+    let result = combinebits!(overflow=truncate, "0aaa aaaa");
     assert_eq!(result, 0b0010_0101);
 }
 

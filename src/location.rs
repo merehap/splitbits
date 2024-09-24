@@ -85,12 +85,12 @@ impl OnOverflow {
     // Convert a lower-case str into its corresponding OnOverflow value.
     pub fn parse(text: &str) -> Result<OnOverflow, String> {
         Ok(match text {
-            "shrink" => OnOverflow::Truncate,
+            "truncate" => OnOverflow::Truncate,
             "panic" => OnOverflow::Panic,
             "corrupt" => OnOverflow::Corrupt,
             "saturate" => OnOverflow::Saturate,
-            overflow => return Err(
-                format!("'{overflow}' is an invalid overflow option. Options: 'wrap', 'panic', 'corrupt', 'saturate'.")),
+            overflow => return Err(format!("'{overflow}' is an invalid overflow option. \
+                Options: 'truncate', 'panic', 'corrupt', 'saturate'.")),
         })
     }
 }

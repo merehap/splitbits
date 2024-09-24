@@ -13,7 +13,7 @@ use crate::name::Name;
 use crate::location::OnOverflow;
 use crate::r#type::{Type, Precision};
 
-/* A sequence of characters use to match and extract bit fields from an integer,
+/* A sequence of characters used to match and extract bit fields from an integer,
  * or alternately to combine bit fields into an integer.
  * For example, "aaabbcdd" will extract variables a, b, c, and d from a byte (u8),
  * or can be used to combine variables a, b, c, and d into a byte.
@@ -71,7 +71,7 @@ impl Template {
     }
 
     // Capture variables from outside the the macro, substituting them into the template.
-    pub fn combine_variables(&self, on_overflow: OnOverflow) -> TokenStream {
+    pub fn combine_with_context(&self, on_overflow: OnOverflow) -> TokenStream {
         let mut field_streams = Vec::new();
         for (name, locations) in &self.locations_by_name {
             assert_eq!(locations.len(), 1);
@@ -88,7 +88,8 @@ impl Template {
     }
 
     // Substitute macro arguments into the template.
-    pub fn combine_with(&self, exprs: &[Expr]) -> TokenStream {
+    // TODO: Use OnOverflow.
+    pub fn combine_with_args(&self, exprs: &[Expr]) -> TokenStream {
         let t = self.width.to_token_stream();
         let mut field_streams = Vec::new();
         assert_eq!(exprs.len(), self.locations_by_name.len(),
