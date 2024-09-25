@@ -30,6 +30,7 @@ use crate::r#type::{Type, Precision};
 // ** Bad setting. Bad setting value.
 // * splitbits_named_into isn't into-ing.
 // * Support splitting inputs across multiple output segments.
+// * Add comments that show example macro expansion fragments.
 // After 0.1.0:
 // * Ensure overflow behavior usability in const contexts.
 // * Add base 8, base 32, and base 64.

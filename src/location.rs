@@ -9,7 +9,7 @@ use crate::Type;
 pub struct Location {
     // How wide the Location is.
     pub width: u8,
-    // Where the Location starts within the Template.
+    // How far from the low bit (right-most bit) of the template is the low bit of this Location.
     pub mask_offset: u8,
 }
 
@@ -37,18 +37,23 @@ impl Location {
     /* Place the name of a field within its appropriate location in the template,
      * using the specified OnOverflow behavior if it is too long.
      */
-    pub fn place_field_name(self, name: Name, width: Type, on_overflow: OnOverflow) -> TokenStream {
-        let width = width.to_token_stream();
+    pub fn place_field_segment(
+        self,
+        name: Name,
+        segment: TokenStream,
+        width: Type,
+        on_overflow: OnOverflow,
+    ) -> TokenStream {
         let var = name.to_char();
-        let name = name.to_ident();
+        let width = width.to_token_stream();
         let shift = self.mask_offset();
         let mask = self.to_unshifted_mask();
         match on_overflow {
-            OnOverflow::Corrupt  => quote! { #width::from(#name) << #shift },
-            OnOverflow::Truncate => quote! { (#width::from(#name) & (#mask as #width)) << #shift },
+            OnOverflow::Corrupt  => quote! { #width::from(#segment) << #shift },
+            OnOverflow::Truncate => quote! { (#width::from(#segment) & (#mask as #width)) << #shift },
             OnOverflow::Panic    => quote! {
                 {
-                    let n = #width::from(#name);
+                    let n = #width::from(#segment);
                     assert!(n <= #mask as #width,
                         "Variable {} is too big for its location in the template. {n} > {}", #var, #mask);
                     n << #shift
@@ -56,7 +61,7 @@ impl Location {
             },
             OnOverflow::Saturate => quote! {
                 {
-                    let mut n = #width::from(#name);
+                    let mut n = #width::from(#segment);
                     let mask = #mask as #width;
                     if n > mask {
                         n = mask;

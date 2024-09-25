@@ -27,6 +27,7 @@ pub struct Template {
     // The template-legal characters contained in this template, in order.
     characters: Characters,
     // The locations of the disjoint segments of each bit field, paired with the field name.
+    // The locations for a name are ordered from right-to-left (offsets in ascending order).
     locations_by_name: Vec<(Name, Vec<Location>)>,
 }
 
@@ -71,11 +72,24 @@ impl Template {
     }
 
     // Capture variables from outside the the macro, substituting them into the template.
+    // FIXME: Multi-segment doesn't work except with OnOverflow::Truncate.
     pub fn combine_with_context(&self, on_overflow: OnOverflow) -> TokenStream {
         let mut field_streams = Vec::new();
         for (name, locations) in &self.locations_by_name {
-            assert_eq!(locations.len(), 1);
-            field_streams.push(locations[0].place_field_name(*name, self.width, on_overflow));
+            if locations.len() == 1 {
+                let segment = name.to_token_stream();
+                field_streams.push(locations[0].place_field_segment(*name, segment, self.width, on_overflow));
+            } else {
+                let name_ident = name.to_ident();
+                let mut segment_offset = 0;
+                for location in locations {
+                    let mask = location.to_unshifted_mask();
+                    let width = self.width.to_token_stream();
+                    let segment = quote! { ((#width::from(#name_ident >> #segment_offset)) & (#mask as #width)) };
+                    segment_offset += location.width();
+                    field_streams.push(location.place_field_segment(*name, segment, self.width, on_overflow));
+                }
+            }
         }
 
         let mut literal_quote = quote! {};
