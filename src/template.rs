@@ -72,23 +72,30 @@ impl Template {
     }
 
     // Capture variables from outside the the macro, substituting them into the template.
-    // FIXME: Multi-segment doesn't work except with OnOverflow::Truncate.
     pub fn combine_with_context(&self, on_overflow: OnOverflow) -> TokenStream {
         let mut field_streams = Vec::new();
         for (name, locations) in &self.locations_by_name {
-            if locations.len() == 1 {
-                let segment = name.to_token_stream();
-                field_streams.push(locations[0].place_field_segment(*name, segment, self.width, on_overflow));
-            } else {
-                let name_ident = name.to_ident();
-                let mut segment_offset = 0;
-                for location in locations {
-                    let mask = location.to_unshifted_mask();
-                    let width = self.width.to_token_stream();
-                    let segment = quote! { ((#width::from(#name_ident >> #segment_offset)) & (#mask as #width)) };
-                    segment_offset += location.width();
-                    field_streams.push(location.place_field_segment(*name, segment, self.width, on_overflow));
-                }
+            let name_ident = name.to_ident();
+            let mut segment_offset = 0;
+            for i in 0..locations.len() {
+                let location = locations[i];
+                let mask = location.to_unshifted_mask();
+                let width = self.width.to_token_stream();
+                let shift = if segment_offset == 0 {
+                    quote! {}
+                } else {
+                    quote! { >> #segment_offset }
+                };
+
+                let mask = if i == locations.len() - 1 {
+                    quote! {}
+                } else {
+                    quote! { & (#mask as #width) }
+                };
+
+                let segment = quote! { ((#width::from(#name_ident #shift)) #mask) };
+                segment_offset += location.width();
+                field_streams.push(location.place_field_segment(*name, segment, self.width, on_overflow));
             }
         }
 
