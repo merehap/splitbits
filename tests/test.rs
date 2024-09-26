@@ -460,6 +460,14 @@ fn combine_into_multiple_segments() {
 }
 
 #[test]
+fn combine_args_into_multiple_segments() {
+    let first: u8 = 0b1010_0101;
+    let second: u8 = 0b0000_1111;
+    let result = combinebits!(first, second, "aaaa bbbb abbb aaba");
+    assert_eq!(result, 0b1010_0000_0111_1011u16);
+}
+
+#[test]
 fn combine_different_sizes() {
     let a = true;
     let b: u8 = 0b00_1111;

@@ -122,15 +122,33 @@ impl Template {
             "The number of inputs must be equal to the number of names in the template.",
         );
         for ((name, locations), expr) in self.locations_by_name.iter().zip(exprs.iter()) {
-            assert_eq!(locations.len(), 1);
-            let segment = quote! { #expr };
-            let field_stream = locations[0].place_field_segment(
-                name.to_token_stream(),
-                segment,
-                self.width,
-                on_overflow,
-            );
-            field_streams.push(field_stream);
+            let mut segment_offset = 0;
+            for i in 0..locations.len() {
+                let location = locations[i];
+                let mask = location.to_unshifted_mask();
+                let width = self.width.to_token_stream();
+                let shift = if segment_offset == 0 {
+                    quote! {}
+                } else {
+                    quote! { >> #segment_offset }
+                };
+
+                let mask = if i == locations.len() - 1 {
+                    quote! {}
+                } else {
+                    quote! { & (#mask as #width) }
+                };
+
+                let segment = quote! { ((#width::from(#expr #shift)) #mask) };
+                segment_offset += location.width();
+                let field_stream = location.place_field_segment(
+                    name.to_token_stream(),
+                    segment,
+                    self.width,
+                    on_overflow,
+                );
+                field_streams.push(field_stream);
+            }
         }
 
         let mut literal_quote = quote! {};
