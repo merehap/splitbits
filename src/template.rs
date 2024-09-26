@@ -115,17 +115,22 @@ impl Template {
     }
 
     // Substitute macro arguments into the template.
-    pub fn combine_with_args(&self, _on_overflow: OnOverflow, exprs: &[Expr]) -> TokenStream {
+    pub fn combine_with_args(&self, on_overflow: OnOverflow, exprs: &[Expr]) -> TokenStream {
         let width = self.width.to_token_stream();
         let mut field_streams = Vec::new();
         assert_eq!(exprs.len(), self.locations_by_name.len(),
             "The number of inputs must be equal to the number of names in the template.",
         );
-        for ((_name, locations), expr) in self.locations_by_name.iter().zip(exprs.iter()) {
+        for ((name, locations), expr) in self.locations_by_name.iter().zip(exprs.iter()) {
             assert_eq!(locations.len(), 1);
-            let shift = locations[0].mask_offset();
-            let field = quote! { #width::from(#expr) << #shift };
-            field_streams.push(field);
+            let segment = quote! { #expr };
+            let field_stream = locations[0].place_field_segment(
+                name.to_token_stream(),
+                segment,
+                self.width,
+                on_overflow,
+            );
+            field_streams.push(field_stream);
         }
 
         let mut literal_quote = quote! {};
@@ -191,8 +196,8 @@ impl Template {
 
     // Convert a template expression into a String. Useful for error messages.
     pub fn template_string(template: &Expr) -> String {
-        let Expr::Lit(template) = template.clone() else { panic!() };
-        let Lit::Str(template) = template.lit else { panic!() };
+        let Expr::Lit(template) = template.clone() else { panic!("Expr must be a literal.") };
+        let Lit::Str(template) = template.lit else { panic!("Expr must be a string literal.") };
         template.value()
     }
 

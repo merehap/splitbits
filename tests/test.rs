@@ -419,8 +419,7 @@ fn combine_overflow_truncate() {
 #[should_panic(expected = "Variable a is too big for its location in the template. 165 > 127")]
 fn combine_overflow_panic() {
     let a: u8 = 0b1010_0101;
-    let result = combinebits!(overflow=panic, "0aaa aaaa");
-    assert_eq!(result, 0b0010_0101);
+    let _ = combinebits!(overflow=panic, "0aaa aaaa");
 }
 
 #[test]
@@ -500,6 +499,48 @@ fn combine_arguments() {
         first, second, third, fourth,
         "cccc cccc cccc cabb bbbb 1011 dddd dddd dddd dddd dddd dddd dddd dddd dddd dddd");
     assert_eq!(result,       0b1010_1010_1010_1100_1111_1011_1000_1000_1000_1000_1000_1000_1000_1000_1000_1000u64);
+}
+
+#[test]
+fn combine_arguments_literal_arg() {
+    let result = combinebits!(0b1010_0101, "aaaa aaaa");
+    assert_eq!(result, 0b1010_0101);
+}
+
+#[test]
+fn combine_arguments_overflow() {
+    let arg = 0b1010_0101;
+    let result = combinebits!(arg, "0aaa aaaa");
+    assert_eq!(result, 0b0010_0101);
+}
+
+// Same as default behavior.
+#[test]
+fn combine_arguments_overflow_truncate() {
+    let arg = 0b1010_0101;
+    let result = combinebits!(overflow=truncate, arg, "0aaa aaaa");
+    assert_eq!(result, 0b0010_0101);
+}
+
+#[test]
+#[should_panic(expected = "Variable a is too big for its location in the template. 165 > 127")]
+fn combine_arguments_overflow_panic() {
+    let arg = 0b1010_0101;
+    let _ = combinebits!(overflow=panic, arg, "0aaa aaaa");
+}
+
+#[test]
+fn combine_arguments_overflow_corrupt() {
+    let arg = 0b1010_0101;
+    let result = combinebits!(overflow=corrupt, arg, "0aaa aaaa");
+    assert_eq!(result, 0b1010_0101);
+}
+
+#[test]
+fn combine_arguments_overflow_saturate() {
+    let arg = 0b1010_0101;
+    let result = combinebits!(overflow=saturate, arg, "0aaa aaaa");
+    assert_eq!(result, 0b0111_1111);
 }
 
 #[test]

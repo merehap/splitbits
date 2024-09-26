@@ -26,6 +26,7 @@ use crate::r#type::{Type, Precision};
 
 // TODO:
 // * Better error messages.
+// ** Better error messages when args are out of order.
 // * Tests that confirm non-compilation cases.
 // ** Bad setting. Bad setting value.
 // * splitbits_named_into isn't into-ing.

@@ -29,7 +29,7 @@ impl Type {
      */
     pub fn for_field(bit_count: u8, precision: Precision) -> Self {
         match bit_count {
-            0 => panic!(),
+            0 => panic!("Fields cannot have zero bits."),
             1 => Self::Bool,
             1..=128 if precision == Precision::Ux => Self::Num(BitCount::new(bit_count).unwrap()),
             2..=8    => Self::Num(BitCount::U8),
