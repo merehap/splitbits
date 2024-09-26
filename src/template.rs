@@ -95,23 +95,28 @@ impl Template {
 
                 let segment = quote! { ((#width::from(#name_ident #shift)) #mask) };
                 segment_offset += location.width();
-                field_streams.push(location.place_field_segment(*name, segment, self.width, on_overflow));
+                let field_stream = location.place_field_segment(
+                    name.to_token_stream(),
+                    segment,
+                    self.width,
+                    on_overflow,
+                );
+                field_streams.push(field_stream);
             }
         }
 
         let mut literal_quote = quote! {};
         if let Some(literal) = self.characters.extract_literal() {
-            let t = self.width.to_token_stream();
-            literal_quote = quote! { | (#literal as #t) };
+            let width = self.width.to_token_stream();
+            literal_quote = quote! { | (#literal as #width) };
         }
 
         quote! { (#(#field_streams)|*) #literal_quote }
     }
 
     // Substitute macro arguments into the template.
-    // TODO: Use OnOverflow.
-    pub fn combine_with_args(&self, exprs: &[Expr]) -> TokenStream {
-        let t = self.width.to_token_stream();
+    pub fn combine_with_args(&self, _on_overflow: OnOverflow, exprs: &[Expr]) -> TokenStream {
+        let width = self.width.to_token_stream();
         let mut field_streams = Vec::new();
         assert_eq!(exprs.len(), self.locations_by_name.len(),
             "The number of inputs must be equal to the number of names in the template.",
@@ -119,14 +124,13 @@ impl Template {
         for ((_name, locations), expr) in self.locations_by_name.iter().zip(exprs.iter()) {
             assert_eq!(locations.len(), 1);
             let shift = locations[0].mask_offset();
-            let field = quote! { #t::from(#expr) << #shift };
+            let field = quote! { #width::from(#expr) << #shift };
             field_streams.push(field);
         }
 
         let mut literal_quote = quote! {};
         if let Some(literal) = self.characters.extract_literal() {
-            let t = self.width.to_token_stream();
-            literal_quote = quote! { | (#literal as #t) };
+            literal_quote = quote! { | (#literal as #width) };
         }
 
         quote! { (#(#field_streams)|*) #literal_quote }

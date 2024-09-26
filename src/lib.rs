@@ -234,8 +234,7 @@ fn combinebits_base(
         // No arguments passed, so take them from the variables preceeding the macro instead.
         template.combine_with_context(on_overflow).into()
     } else {
-        // TODO: OnOverflow needs to be passed here.
-        template.combine_with_args(&parts[..]).into()
+        template.combine_with_args(on_overflow, &parts[..]).into()
     }
 }
 

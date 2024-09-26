@@ -1,7 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 
-use crate::name::Name;
 use crate::Type;
 
 // The location of a bit field segment within a template.
@@ -39,12 +38,11 @@ impl Location {
      */
     pub fn place_field_segment(
         self,
-        name: Name,
+        label: TokenStream,
         segment: TokenStream,
         width: Type,
         on_overflow: OnOverflow,
     ) -> TokenStream {
-        let var = name.to_char();
         let width = width.to_token_stream();
         let shift = self.mask_offset();
         let mask = self.to_unshifted_mask();
@@ -55,7 +53,7 @@ impl Location {
                 {
                     let n = #width::from(#segment);
                     assert!(n <= #mask as #width,
-                        "Variable {} is too big for its location in the template. {n} > {}", #var, #mask);
+                        "Variable {} is too big for its location in the template. {n} > {}", #label, #mask);
                     n << #shift
                 }
             },

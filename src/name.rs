@@ -1,5 +1,5 @@
-use proc_macro2::Ident;
-use quote::format_ident;
+use proc_macro2::{Ident, TokenStream};
+use quote::{format_ident, quote};
 
 // A single char Field name.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug)]
@@ -23,5 +23,11 @@ impl Name {
     // Convert for use in macro output.
     pub fn to_ident(self) -> Ident {
         format_ident!("{}", self.to_char())
+    }
+
+    // Convert for use in macro output.
+    pub fn to_token_stream(self) -> TokenStream {
+        let name = self.to_char();
+        quote! { #name }
     }
 }
