@@ -2,7 +2,7 @@ use std::collections::{BTreeSet, BTreeMap};
 
 use itertools::Itertools;
 use proc_macro2::{TokenStream, Ident};
-use quote::{quote, format_ident};
+use quote::{quote, format_ident, ToTokens};
 use syn::{Expr, Lit};
 
 use crate::base::Base;
@@ -75,34 +75,9 @@ impl Template {
     pub fn combine_with_context(&self, on_overflow: OnOverflow) -> TokenStream {
         let mut field_streams = Vec::new();
         for (name, locations) in &self.locations_by_name {
-            let name_ident = name.to_ident();
-            let mut segment_offset = 0;
-            for i in 0..locations.len() {
-                let location = locations[i];
-                let mask = location.to_unshifted_mask();
-                let width = self.width.to_token_stream();
-                let shift = if segment_offset == 0 {
-                    quote! {}
-                } else {
-                    quote! { >> #segment_offset }
-                };
-
-                let mask = if i == locations.len() - 1 {
-                    quote! {}
-                } else {
-                    quote! { & (#mask as #width) }
-                };
-
-                let segment = quote! { ((#width::from(#name_ident #shift)) #mask) };
-                segment_offset += location.width();
-                let field_stream = location.place_field_segment(
-                    name.to_token_stream(),
-                    segment,
-                    self.width,
-                    on_overflow,
-                );
-                field_streams.push(field_stream);
-            }
+            let mut streams = self.create_field_streams(
+                *name, Box::new(name.to_ident()), &locations, on_overflow);
+            field_streams.append(&mut streams);
         }
 
         let mut literal_quote = quote! {};
@@ -122,33 +97,9 @@ impl Template {
             "The number of inputs must be equal to the number of names in the template.",
         );
         for ((name, locations), expr) in self.locations_by_name.iter().zip(exprs.iter()) {
-            let mut segment_offset = 0;
-            for i in 0..locations.len() {
-                let location = locations[i];
-                let mask = location.to_unshifted_mask();
-                let width = self.width.to_token_stream();
-                let shift = if segment_offset == 0 {
-                    quote! {}
-                } else {
-                    quote! { >> #segment_offset }
-                };
-
-                let mask = if i == locations.len() - 1 {
-                    quote! {}
-                } else {
-                    quote! { & (#mask as #width) }
-                };
-
-                let segment = quote! { ((#width::from(#expr #shift)) #mask) };
-                segment_offset += location.width();
-                let field_stream = location.place_field_segment(
-                    name.to_token_stream(),
-                    segment,
-                    self.width,
-                    on_overflow,
-                );
-                field_streams.push(field_stream);
-            }
+            let mut streams = self.create_field_streams(
+                *name, Box::new(expr.clone()), &locations, on_overflow);
+            field_streams.append(&mut streams);
         }
 
         let mut literal_quote = quote! {};
@@ -230,6 +181,46 @@ impl Template {
             // Underscores work in struct names, periods do not.
             .replace('.', "_");
         format_ident!("{}", format!("Fields·{}", struct_name_suffix))
+    }
+
+    fn create_field_streams(
+        &self,
+        name: Name,
+        var: Box<dyn ToTokens>,
+        locations: &[Location],
+        on_overflow: OnOverflow,
+    ) -> Vec<TokenStream> {
+        let mut field_streams = Vec::new();
+
+        let mut segment_offset = 0;
+        for i in 0..locations.len() {
+            let location = locations[i];
+            let mask = location.to_unshifted_mask();
+            let width = self.width.to_token_stream();
+            let shift = if segment_offset == 0 {
+                quote! {}
+            } else {
+                quote! { >> #segment_offset }
+            };
+
+            let mask = if i == locations.len() - 1 {
+                quote! {}
+            } else {
+                quote! { & (#mask as #width) }
+            };
+
+            let segment = quote! { ((#width::from(#var #shift)) #mask) };
+            segment_offset += location.width();
+            let field_stream = location.place_field_segment(
+                name.to_token_stream(),
+                segment,
+                self.width,
+                on_overflow,
+            );
+            field_streams.push(field_stream);
+        }
+
+        field_streams
     }
 }
 
