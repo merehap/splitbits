@@ -80,18 +80,11 @@ impl Template {
             field_streams.append(&mut streams);
         }
 
-        let mut literal_quote = quote! {};
-        if let Some(literal) = self.characters.extract_literal() {
-            let width = self.width.to_token_stream();
-            literal_quote = quote! { | (#literal as #width) };
-        }
-
-        quote! { (#(#field_streams)|*) #literal_quote }
+        self.combine_with_literal(&field_streams)
     }
 
     // Substitute macro arguments into the template.
     pub fn combine_with_args(&self, on_overflow: OnOverflow, exprs: &[Expr]) -> TokenStream {
-        let width = self.width.to_token_stream();
         let mut field_streams = Vec::new();
         assert_eq!(exprs.len(), self.locations_by_name.len(),
             "The number of inputs must be equal to the number of names in the template.",
@@ -102,12 +95,7 @@ impl Template {
             field_streams.append(&mut streams);
         }
 
-        let mut literal_quote = quote! {};
-        if let Some(literal) = self.characters.extract_literal() {
-            literal_quote = quote! { | (#literal as #width) };
-        }
-
-        quote! { (#(#field_streams)|*) #literal_quote }
+        self.combine_with_literal(&field_streams)
     }
 
     // Replace bits in target with bits captured from variables outside the macro.
@@ -154,13 +142,7 @@ impl Template {
             field_streams.push(field.to_token_stream());
         }
 
-        let mut literal_quote = quote! {};
-        if let Some(literal) = self.characters.extract_literal() {
-            let t = self.width.to_token_stream();
-            literal_quote = quote! { | (#literal as #t) };
-        }
-
-        quote! { (#(#field_streams)|*) #literal_quote }
+        self.combine_with_literal(&field_streams)
     }
 
     // Convert a template expression into a String. Useful for error messages.
@@ -221,6 +203,15 @@ impl Template {
         }
 
         field_streams
+    }
+
+    fn combine_with_literal(&self, field_streams: &[TokenStream]) -> TokenStream {
+        if let Some(literal) = self.characters.extract_literal() {
+            let width = self.width.to_token_stream();
+            quote! { (#(#field_streams)|*) | (#literal as #width) }
+        } else {
+            quote! { #(#field_streams)|* }
+        }
     }
 }
 

@@ -110,7 +110,7 @@ impl Characters {
         Some(u128::from_str_radix(&literal_string, 2).unwrap())
     }
 
-    // Return '1's where the there is a literal Character, '0's everywhere else.
+    // Return '1's where there is a literal Character, '0's everywhere else.
     pub fn literal_mask(&self) -> u128 {
         let literal_string: String = self.0.iter()
             .map(|&c| if c == Character::Zero || c == Character::One { '1' } else { '0' })
