@@ -105,11 +105,18 @@ impl Template {
         let mut replacements = Vec::new();
         for (name, locations) in &self.locations_by_name {
             assert_eq!(locations.len(), 1);
+            let location = locations[0];
             let name = name.to_ident();
-            let shift = locations[0].mask_offset();
-            let field = quote! { #t::try_from(#name).unwrap() << #shift };
+            let segment = quote! { #t::try_from(#name).unwrap() };
+            let field = location.place_field_segment(
+                name.to_token_stream(),
+                segment,
+                self.width,
+                // TODO: Switch to Corrupt once adequate testing is in place.
+                OnOverflow::Panic,
+            );
             replacements.push(field);
-            mask |= locations[0].to_mask();
+            mask |= location.to_mask();
         }
 
         let mut literal_quote = quote! {};
