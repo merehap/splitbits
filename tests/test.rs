@@ -637,6 +637,16 @@ fn replace() {
 }
 
 #[test]
+fn replace_segments() {
+    let a = 0b101u16;
+    let b = 0b00001u8;
+    let c = 0b0101u128;
+    let d = true;
+    let result = replacebits!(0b1001_1010_1100_1111u16, "aabb bbab .c.. ccdc");
+    assert_eq!(result,        0b1000_0011_1000_1011u16);
+}
+
+#[test]
 fn replacehex_ux() {
     let a = u4::new(0xE);
     let c: u8 = 0x2A;

@@ -32,7 +32,9 @@ use crate::r#type::{Type, Precision};
 // * splitbits_named_into isn't into-ing.
 // * Support splitting inputs across multiple output segments.
 // * Add comments that show example macro expansion fragments.
+// * Split tests into multiple files.
 // After 0.1.0:
+// * Create abstract syntax trees instead of quoting prematurely.
 // * Ensure overflow behavior usability in const contexts.
 // * Add base 8, base 32, and base 64.
 // ** Add build-your-own splitbits with other Bases.

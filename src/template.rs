@@ -101,35 +101,52 @@ impl Template {
     // Replace bits in target with bits captured from variables outside the macro.
     pub fn replace(&self, target: &Expr) -> TokenStream {
         let t = self.width.to_token_stream();
-        let mut mask = 0u128;
+        // The mask allows us to clear to relevant bits in the target before applying replacements.
+        let mut replacement_mask = 0u128;
         let mut replacements = Vec::new();
         for (name, locations) in &self.locations_by_name {
-            assert_eq!(locations.len(), 1);
-            let location = locations[0];
-            let name = name.to_ident();
-            let segment = quote! { #t::try_from(#name).unwrap() };
-            let field = location.place_field_segment(
-                name.to_token_stream(),
-                segment,
-                self.width,
-                // TODO: Switch to Corrupt once adequate testing is in place.
-                OnOverflow::Panic,
-            );
-            replacements.push(field);
-            mask |= location.to_mask();
+            let mut segment_offset = 0;
+            for i in 0..locations.len() {
+                let location = locations[i];
+                let name = name.to_ident();
+                let mask = location.to_unshifted_mask();
+                let width = self.width.to_token_stream();
+                let shift = if segment_offset == 0 {
+                    quote! {}
+                } else {
+                    quote! { >> #segment_offset }
+                };
+
+                let mask = if i == locations.len() - 1 {
+                    quote! {}
+                } else {
+                    quote! { & (#mask as #width) }
+                };
+
+                let segment = quote! { ((#width::try_from(#name #shift).unwrap()) #mask) };
+                segment_offset += location.width();
+                let field = location.place_field_segment(
+                    name.to_token_stream(),
+                    segment,
+                    self.width,
+                    // TODO: Switch to Corrupt once adequate testing is in place.
+                    OnOverflow::Panic,
+                );
+                replacements.push(field);
+                replacement_mask |= location.to_mask();
+            }
         }
 
         let mut literal_quote = quote! {};
         if let Some(literal) = self.characters.extract_literal() {
-            mask |= self.characters.literal_mask();
+            replacement_mask |= self.characters.literal_mask();
             let t = self.width.to_token_stream();
             literal_quote = quote! { | (#literal as #t) };
         }
 
-        let mask = !mask;
-        quote! { (#target & #mask as #t) | (#(#replacements)|*) #literal_quote }
+        let replacement_mask = !replacement_mask;
+        quote! { (#target & #replacement_mask as #t) | (#(#replacements)|*) #literal_quote }
     }
-
 
     // Substitute fields into template (not macro arguments nor captured from context).
     // WRONG ASSUMPTIONS:
