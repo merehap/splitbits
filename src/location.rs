@@ -53,7 +53,7 @@ impl Location {
                 {
                     let n = #width::from(#segment);
                     assert!(n <= #mask as #width,
-                        "Variable {} is too big for its location in the template. {n} > {}", #label, #mask);
+                        "Variable {} is too big for its location in the template. {n:b} > {:b}", #label, #mask);
                     n << #shift
                 }
             },

@@ -148,9 +148,7 @@ impl Template {
         quote! { (#target & #replacement_mask as #t) | (#(#replacements)|*) #literal_quote }
     }
 
-    // Substitute fields into template (not macro arguments nor captured from context).
-    // WRONG ASSUMPTIONS:
-    // * Each name only has a single segment.
+    // Substitute Fields into template (not macro arguments nor captured from context).
     pub fn substitute_fields(&self, fields: Vec<Field>) -> TokenStream {
         let fields: BTreeMap<Name, Field> = fields.into_iter()
             .map(|field| (field.name(), field))
@@ -160,10 +158,17 @@ impl Template {
             assert_eq!(locations.len(), 1);
             let location = locations[0];
             let field = fields[name].clone()
-                .shift_left(location.mask_offset())
                 .widen(self.width);
-            assert_eq!(location.width(), field.width());
-            field_streams.push(field.to_token_stream());
+            let segment = field.to_token_stream();
+
+            let field = location.place_field_segment(
+                name.to_token_stream(),
+                segment,
+                self.width,
+                // TODO: Switch to Corrupt once adequate testing is in place.
+                OnOverflow::Panic,
+            );
+            field_streams.push(field);
         }
 
         self.combine_with_literal(&field_streams)

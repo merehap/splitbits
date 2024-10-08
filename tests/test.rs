@@ -416,7 +416,7 @@ fn combine_overflow_truncate() {
 }
 
 #[test]
-#[should_panic(expected = "Variable a is too big for its location in the template. 165 > 127")]
+#[should_panic(expected = "Variable a is too big for its location in the template. 10100101 > 1111111")]
 fn combine_overflow_panic() {
     let a: u8 = 0b1010_0101;
     let _ = combinebits!(overflow=panic, "0aaa aaaa");
@@ -531,7 +531,7 @@ fn combine_arguments_overflow_truncate() {
 }
 
 #[test]
-#[should_panic(expected = "Variable a is too big for its location in the template. 165 > 127")]
+#[should_panic(expected = "Variable a is too big for its location in the template. 10100101 > 1111111")]
 fn combine_arguments_overflow_panic() {
     let arg = 0b1010_0101;
     let _ = combinebits!(overflow=panic, arg, "0aaa aaaa");
@@ -610,6 +610,31 @@ fn split_then_combine_many_fragments() {
     );
     assert_eq!(result, 0b0110_1111_1110_0101u16);
 }
+
+/*
+#[test]
+fn split_then_combine_into_fragments() {
+    let result = splitbits_then_combine!(
+        0b1001_0000_1111_0000, "aaaa .... .... ....",
+        0b1111_1010_0111_0000, ".... bbbb aaaa ....",
+                               "aa00 bb01 aaab baaa",
+    );
+    assert_eq!(result, 0b1000_1001_0101_0111u16);
+}
+*/
+
+/*
+#[test]
+fn split_then_combine_fragments_into_segments() {
+    let result = splitbits_then_combine!(
+        0b1001_0000_1111_0000, "c.aa .... ...a ....",
+        0b1111_1010_0111_0000, "..a. ..a. bb.a ....",
+        0b1111_0011_1111_0000, "..aa aaa. .... ...a",
+                               "bb1a aaaa aaaa aaac",
+    );
+    assert_eq!(result, 0b0110_1111_1110_0101u16);
+}
+*/
 
 #[test]
 fn splithex_then_combine() {

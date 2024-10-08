@@ -115,16 +115,6 @@ impl Field {
         }
     }
 
-    // Shift all segments to the left.
-    // TODO: Fail on overflow.
-    pub fn shift_left(mut self, shift: u8) -> Self {
-        for segment in &mut self.segments {
-            segment.set_output_offset(shift);
-        }
-
-        self
-    }
-
     // Widen all segments.
     pub fn widen(mut self, new_bit_width: Type) -> Self {
         self.bit_width = new_bit_width;
