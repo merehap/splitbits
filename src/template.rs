@@ -155,20 +155,11 @@ impl Template {
             .collect();
         let mut field_streams = Vec::new();
         for (name, locations) in &self.locations_by_name {
-            assert_eq!(locations.len(), 1);
-            let location = locations[0];
             let field = fields[name].clone()
                 .widen(self.width);
-            let segment = field.to_token_stream();
-
-            let field = location.place_field_segment(
-                name.to_token_stream(),
-                segment,
-                self.width,
-                // TODO: Switch to Corrupt once adequate testing is in place.
-                OnOverflow::Panic,
-            );
-            field_streams.push(field);
+            let segment = Box::new(field.to_token_stream());
+            let mut streams = self.create_field_streams(*name, segment, locations, OnOverflow::Panic);
+            field_streams.append(&mut streams);
         }
 
         self.combine_with_literal(&field_streams)

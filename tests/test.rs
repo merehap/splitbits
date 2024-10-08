@@ -611,7 +611,6 @@ fn split_then_combine_many_fragments() {
     assert_eq!(result, 0b0110_1111_1110_0101u16);
 }
 
-/*
 #[test]
 fn split_then_combine_into_fragments() {
     let result = splitbits_then_combine!(
@@ -621,20 +620,17 @@ fn split_then_combine_into_fragments() {
     );
     assert_eq!(result, 0b1000_1001_0101_0111u16);
 }
-*/
 
-/*
 #[test]
-fn split_then_combine_fragments_into_segments() {
+fn split_then_combine_segments_into_fragments() {
     let result = splitbits_then_combine!(
         0b1001_0000_1111_0000, "c.aa .... ...a ....",
         0b1111_1010_0111_0000, "..a. ..a. bb.a ....",
         0b1111_0011_1111_0000, "..aa aaa. .... ...a",
-                               "bb1a aaaa aaaa aaac",
+                               "ba1b aaaa aaaa aaca",
     );
-    assert_eq!(result, 0b0110_1111_1110_0101u16);
+    assert_eq!(result, 0b0011_1111_1110_0110u16);
 }
-*/
 
 #[test]
 fn splithex_then_combine() {

@@ -28,9 +28,8 @@ use crate::r#type::{Type, Precision};
 // * Better error messages.
 // ** Better error messages when args are out of order.
 // * Tests that confirm non-compilation cases.
-// ** Bad setting. Bad setting value.
+// ** Bad setting name. Bad setting value.
 // * splitbits_named_into isn't into-ing.
-// * Support splitting inputs across multiple output segments.
 // * Add comments that show example macro expansion fragments.
 // * Split tests into multiple files.
 // After 0.1.0:
