@@ -1,0 +1,9 @@
+error: proc macro panicked
+ --> tests/compile_failures/mismatch_split_then_combine.rs:4:13
+  |
+4 |     let _ = splitbits_then_combine!(0b1001_1010, "aaab bbbb", "bbba aaaa");
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: assertion `left == right` failed: The width of field 'b' must match between the input templates and the output template.
+            left: 5
+           right: 3

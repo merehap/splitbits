@@ -167,10 +167,15 @@ impl Template {
             .collect();
         let mut field_streams = Vec::new();
         for (name, locations) in &self.locations_by_name {
-            let field = fields[name].clone()
-                .widen(self.width);
+            let field = fields[name].clone();
+            let n = name.to_ident();
+            assert_eq!(field.width(), locations.iter().map(|l| l.width).sum(),
+                "The width of field '{n}' must match between the input templates and the output template.");
+            let field = field.widen(self.width);
             let segment = Box::new(field.to_token_stream());
-            let mut streams = self.create_field_streams(*name, segment, locations, OnOverflow::Panic);
+            // Input and output fields having unequal lengths should fail at compile time,
+            // so go with OnOverflow::Corrupt since it is the most efficient option.
+            let mut streams = self.create_field_streams(*name, segment, locations, OnOverflow::Corrupt);
             field_streams.append(&mut streams);
         }
 
