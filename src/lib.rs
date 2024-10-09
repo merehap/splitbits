@@ -25,13 +25,13 @@ use crate::template::Template;
 use crate::r#type::{Type, Precision};
 
 // TODO:
+// * Detailed top-level comments.
 // * Put compile checks behind different target so compiler updates don't break building.
-// * Determine if truncate or panic should be the default for combinebits and replacebits.
 // * splitbits_named_into isn't into-ing.
-// * Add comments that show example macro expansion fragments.
 // * Split tests into multiple files.
 // After 0.1.0:
 // * Create abstract syntax trees instead of quoting prematurely.
+// ** Add comments that show example macro expansion fragments.
 // * Extract argument parsing.
 // * Ensure overflow behavior usability in const contexts.
 // * Add base 8, base 32, and base 64.
@@ -270,7 +270,7 @@ fn replacebits_base(
         "replacebits must take at most three arguments: \
         an overflow setting, then an input value, then a template. Found:\n`{input}`");
 
-    let mut on_overflow = OnOverflow::Panic;
+    let mut on_overflow = OnOverflow::Truncate;
     if parts.len() == 3 {
         let (setting, value) = parse_assignment(&parts[0])
             .expect("the first argument to be an 'overflow' setting since three arguments were supplied");
