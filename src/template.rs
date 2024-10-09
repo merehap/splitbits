@@ -85,10 +85,20 @@ impl Template {
 
     // Substitute macro arguments into the template.
     pub fn combine_with_args(&self, on_overflow: OnOverflow, exprs: &[Expr]) -> TokenStream {
-        let mut field_streams = Vec::new();
+        for expr in exprs {
+            if let Expr::Lit(template) = expr.clone() {
+                if let Lit::Str(template) = template.lit {
+                    panic!("Only one template must be present, \
+                        but found this string literal too: '{}'.", template.value());
+                };
+            };
+        }
+
         assert_eq!(exprs.len(), self.locations_by_name.len(),
             "The number of inputs must be equal to the number of names in the template.",
         );
+
+        let mut field_streams = Vec::new();
         for ((name, locations), expr) in self.locations_by_name.iter().zip(exprs.iter()) {
             let mut streams = self.create_field_streams(
                 *name, Box::new(expr.clone()), &locations, on_overflow);

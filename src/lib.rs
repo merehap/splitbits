@@ -219,7 +219,7 @@ fn combinebits_base(
         input.into(),
     ).unwrap();
     let mut parts: Vec<_> = parts.into_iter().collect();
-    assert!(!parts.is_empty(), "combinebits! must take at least one argument.");
+    assert!(!parts.is_empty(), "combinebits! must take at least one argument (the template).");
 
     let mut on_overflow = OnOverflow::Truncate;
     // If we've got more than one argument, the first one might be an overflow setting.
