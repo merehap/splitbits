@@ -26,7 +26,6 @@ use crate::r#type::{Type, Precision};
 
 // TODO:
 // * Put compile checks behind different target so compiler updates don't break building.
-// * Determine if Precision is relevant for replacebits (compare to splitbits).
 // * Determine if truncate or panic should be the default for combinebits and replacebits.
 // * splitbits_named_into isn't into-ing.
 // * Add comments that show example macro expansion fragments.
@@ -126,22 +125,12 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
 
 #[proc_macro]
 pub fn replacebits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    replacebits_base(input, Base::Binary, Precision::Standard)
+    replacebits_base(input, Base::Binary)
 }
 
 #[proc_macro]
 pub fn replacehex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    replacebits_base(input, Base::Hexadecimal, Precision::Standard)
-}
-
-#[proc_macro]
-pub fn replacebits_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    replacebits_base(input, Base::Binary, Precision::Ux)
-}
-
-#[proc_macro]
-pub fn replacehex_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    replacebits_base(input, Base::Hexadecimal, Precision::Ux)
+    replacebits_base(input, Base::Hexadecimal)
 }
 
 fn splitbits_base(
@@ -270,7 +259,6 @@ fn split_then_combine_base(input: proc_macro::TokenStream, base: Base) -> proc_m
 fn replacebits_base(
     input: proc_macro::TokenStream,
     base: Base,
-    precision: Precision,
 ) -> proc_macro::TokenStream {
     let parts = Parser::parse2(Punctuated::<Expr, Token![,]>::parse_terminated, input.clone().into())
         .expect("replacebits! argument list should be formatted sanely");
@@ -294,7 +282,7 @@ fn replacebits_base(
     }
 
     let value = parts[0].clone();
-    let template = Template::from_expr(&parts[1], base, precision);
+    let template = Template::from_expr(&parts[1], base, Precision::Ux);
     let result = template.replace(on_overflow, &value);
     result.into()
 }
