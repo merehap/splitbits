@@ -689,6 +689,46 @@ fn replace_too_big() {
 }
 
 #[test]
+#[should_panic(expected = "Variable a is too big for its location in the template. 0b1101 > 0b111")]
+fn replace_too_big_panic() {
+    let a = 0b1101u16;
+    let b = 0b00001u8;
+    let c = 0b0101u128;
+    let d = false;
+    let _ = replacebits!(overflow=panic, 0b1001_1010_1100_1111u16, "aaab bbbb .d.. cccc");
+}
+
+#[test]
+fn replace_too_big_truncate() {
+    let a = 0b1101u16;
+    let b = 0b00001u8;
+    let c = 0b0101u128;
+    let d = false;
+    let result = replacebits!(overflow=truncate, 0b1001_1010_1100_1111u16, "aaab bbbb .d.. cccc");
+    assert_eq!(result,                           0b1010_0001_1000_0101u16);
+}
+
+#[test]
+fn replace_too_big_saturate() {
+    let a = 0b1101u16;
+    let b = 0b00001u8;
+    let c = 0b0101u128;
+    let d = false;
+    let result = replacebits!(overflow=saturate, 0b1001_1010_1100_1111u16, "aaab bbbb .d.. cccc");
+    assert_eq!(result,                           0b1110_0001_1000_0101u16);
+}
+
+#[test]
+fn replace_too_big_corrupt() {
+    let a = 0b1101u16;
+    let b = 0b00001u8;
+    let c = 0b0101u128;
+    let d = false;
+    let result = replacebits!(overflow=corrupt, 0b0001_1010_1100_1111u16, ".aab bbbb .d.. cccc");
+    assert_eq!(result,                          0b1010_0001_1000_0101u16);
+}
+
+#[test]
 fn replacehex_ux() {
     let a = u4::new(0xE);
     let c: u8 = 0x2A;

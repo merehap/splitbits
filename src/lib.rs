@@ -25,7 +25,8 @@ use crate::template::Template;
 use crate::r#type::{Type, Precision};
 
 // TODO:
-// * Pass OnOverflow to replacebits.
+// * Put compile checks behind different target so compiler updates don't break building.
+// * Determine if truncate or panic should be the default for combinebits and replacebits.
 // * Better error messages.
 // ** Better error messages when args are out of order.
 // * Tests that confirm non-compilation cases.
