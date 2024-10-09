@@ -25,6 +25,7 @@ use crate::template::Template;
 use crate::r#type::{Type, Precision};
 
 // TODO:
+// * Pass OnOverflow to replacebits.
 // * Better error messages.
 // ** Better error messages when args are out of order.
 // * Tests that confirm non-compilation cases.

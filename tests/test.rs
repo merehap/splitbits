@@ -416,7 +416,7 @@ fn combine_overflow_truncate() {
 }
 
 #[test]
-#[should_panic(expected = "Variable a is too big for its location in the template. 10100101 > 1111111")]
+#[should_panic(expected = "Variable a is too big for its location in the template. 0b10100101 > 0b1111111")]
 fn combine_overflow_panic() {
     let a: u8 = 0b1010_0101;
     let _ = combinebits!(overflow=panic, "0aaa aaaa");
@@ -531,7 +531,7 @@ fn combine_arguments_overflow_truncate() {
 }
 
 #[test]
-#[should_panic(expected = "Variable a is too big for its location in the template. 10100101 > 1111111")]
+#[should_panic(expected = "Variable a is too big for its location in the template. 0b10100101 > 0b1111111")]
 fn combine_arguments_overflow_panic() {
     let arg = 0b1010_0101;
     let _ = combinebits!(overflow=panic, arg, "0aaa aaaa");
@@ -658,6 +658,17 @@ fn replace() {
 }
 
 #[test]
+fn replace_var() {
+    let var = 0b1001_1010_1100_1111u16;
+    let a = 0b101u16;
+    let b = 0b00001u8;
+    let c = 0b0101u128;
+    let d = false;
+    let result = replacebits!(var, "aaab bbbb .d.. cccc");
+    assert_eq!(result,        0b1010_0001_1000_0101u16);
+}
+
+#[test]
 fn replace_segments() {
     let a = 0b101u16;
     let b = 0b00001u8;
@@ -665,6 +676,16 @@ fn replace_segments() {
     let d = true;
     let result = replacebits!(0b1001_1010_1100_1111u16, "aabb bbab .c.. ccdc");
     assert_eq!(result,        0b1000_0011_1000_1011u16);
+}
+
+#[test]
+#[should_panic(expected = "Variable a is too big for its location in the template. 0b1101 > 0b111")]
+fn replace_too_big() {
+    let a = 0b1101u16;
+    let b = 0b00001u8;
+    let c = 0b0101u128;
+    let d = false;
+    let _ = replacebits!(0b1001_1010_1100_1111u16, "aaab bbbb .d.. cccc");
 }
 
 #[test]

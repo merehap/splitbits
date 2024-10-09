@@ -49,8 +49,10 @@ impl Template {
                 .filter_map(|(c, segment)| {
                     if c == Character::Name(name) {
                         let segment: Vec<_> = segment.collect();
-                        let width = segment.len().try_into().unwrap();
-                        let mask_offset = segment[0].0.try_into().unwrap();
+                        let width = segment.len().try_into()
+                            .expect("segment to be at most 255 characters");
+                        let mask_offset = segment[0].0.try_into()
+                            .expect("segment offset to be at most 255 characters");
                         Some(Location { width, mask_offset })
                     } else {
                         None
@@ -118,6 +120,7 @@ impl Template {
             let mut segment_offset = 0;
             for i in 0..locations.len() {
                 let location = locations[i];
+                let var = name;
                 let name = name.to_ident();
                 let mask = location.to_unshifted_mask();
                 let width = self.width.to_token_stream();
@@ -136,7 +139,7 @@ impl Template {
                 let segment = quote! { ((#width::try_from(#name #shift).unwrap()) #mask) };
                 segment_offset += location.width();
                 let field = location.place_field_segment(
-                    name.to_token_stream(),
+                    var.to_token_stream(),
                     segment,
                     self.width,
                     // TODO: Switch to Corrupt once adequate testing is in place.
