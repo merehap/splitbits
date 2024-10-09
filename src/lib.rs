@@ -151,7 +151,7 @@ fn splitbits_base(
     precision: Precision,
 ) -> proc_macro::TokenStream {
     let (value, template, min_size) =
-        parse_splitbits_input(input.into(), base, precision, LiteralsAllowed::No);
+        parse_splitbits_input(input.into(), base, precision);
     let fields = template.extract_fields(&value, min_size);
 
     let struct_name = template.to_struct_name();
@@ -179,7 +179,7 @@ fn splitbits_named_base(
     precision: Precision,
 ) -> proc_macro::TokenStream {
     let (value, template, min_size) =
-        parse_splitbits_input(input.into(), base, precision, LiteralsAllowed::No);
+        parse_splitbits_input(input.into(), base, precision);
     let fields = template.extract_fields(&value, min_size);
     let values: Vec<TokenStream> = fields.iter().map(Field::to_token_stream).collect();
 
@@ -198,7 +198,7 @@ fn splitbits_named_into_base(
     precision: Precision,
 ) -> proc_macro::TokenStream {
     let (value, template, min_size) =
-        parse_splitbits_input(input.into(), base, precision, LiteralsAllowed::No);
+        parse_splitbits_input(input.into(), base, precision);
     let fields = template.extract_fields(&value, min_size);
     let values: Vec<TokenStream> = fields.iter().map(Field::to_token_stream).collect();
 
@@ -273,10 +273,29 @@ fn replacebits_base(
     base: Base,
     precision: Precision,
 ) -> proc_macro::TokenStream {
-    let (value, template, min_size) =
-        parse_splitbits_input(input.into(), base, precision, LiteralsAllowed::Yes);
-    assert_eq!(min_size, None);
-    let result = template.replace(&value);
+    let parts = Parser::parse2(Punctuated::<Expr, Token![,]>::parse_terminated, input.clone().into()).unwrap();
+    let mut parts: Vec<_> = parts.into_iter().collect();
+    assert!(parts.len() > 1,
+        "replacebits must take at least two arguments: \
+        an input value then a template. Found:\n`{input}`");
+    assert!(parts.len() <= 3,
+        "replacebits must take at most three arguments: \
+        an overflow setting, then an input value, then a template. Found:\n`{input}`");
+
+    let mut on_overflow = OnOverflow::Panic;
+    if parts.len() == 3 {
+        let (setting, value) = parse_assignment(&parts[0])
+            .expect("the first argument to be an 'overflow' setting since three arguments were supplied");
+        assert_eq!(setting, "overflow", "Only 'overflow' is allowed as a setting.");
+        on_overflow = OnOverflow::parse(&value)
+            .unwrap_or_else(|err_string| panic!("Invalid type for setting 'overflow'. {err_string}"));
+
+        parts.remove(0);
+    }
+
+    let value = parts[0].clone();
+    let template = Template::from_expr(&parts[1], base, precision);
+    let result = template.replace(on_overflow, &value);
     result.into()
 }
 
@@ -284,7 +303,6 @@ fn parse_splitbits_input(
     item: TokenStream,
     base: Base,
     precision: Precision,
-    literals_allowed: LiteralsAllowed,
 ) -> (Expr, Template, Option<Type>) {
     let parts = Parser::parse2(Punctuated::<Expr, Token![,]>::parse_terminated, item.clone()).unwrap();
     let mut parts: Vec<_> = parts.into_iter().collect();
@@ -293,7 +311,7 @@ fn parse_splitbits_input(
         an input value then a template. Found:\n`{item}`");
     assert!(parts.len() <= 3,
         "splitbits must take at most three arguments: \
-        a precision, then an input value, then a template. Found:\n`{item}`");
+        a min type, then an input value, then a template. Found:\n`{item}`");
 
     let mut min_size = None;
     if parts.len() == 3 {
@@ -308,23 +326,15 @@ fn parse_splitbits_input(
         parts.remove(0);
     }
 
-    if literals_allowed == LiteralsAllowed::No {
-        let template_string = Template::template_string(&parts[1]);
-        for c in template_string.chars() {
-            assert!(!c.is_numeric() && !c.is_ascii_uppercase(),
-                "Literals not allowed in this context, but found '{c}' in '{template_string}'.");
-        }
+    let template_string = Template::template_string(&parts[1]);
+    for c in template_string.chars() {
+        assert!(!c.is_numeric() && !c.is_ascii_uppercase(),
+            "Literals not allowed in this context, but found '{c}' in '{template_string}'.");
     }
 
     let value = parts[0].clone();
     let template = Template::from_expr(&parts[1], base, precision);
     (value, template, min_size)
-}
-
-#[derive(PartialEq, Eq, Clone, Copy)]
-enum LiteralsAllowed {
-    No,
-    Yes,
 }
 
 fn parse_assignment(expr: &Expr) -> Option<(String, String)> {

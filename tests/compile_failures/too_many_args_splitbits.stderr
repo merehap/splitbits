@@ -4,5 +4,5 @@ error: proc macro panicked
 4 |     splitbits!(min=u8, 0b11011101, "aaabbccc", whatisthisthing);
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
-  = help: message: splitbits must take at most three arguments: a precision, then an input value, then a template. Found:
+  = help: message: splitbits must take at most three arguments: a min type, then an input value, then a template. Found:
           `min=u8, 0b11011101, "aaabbccc", whatisthisthing`

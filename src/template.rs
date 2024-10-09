@@ -111,7 +111,7 @@ impl Template {
     }
 
     // Replace bits in target with bits captured from variables outside the macro.
-    pub fn replace(&self, target: &Expr) -> TokenStream {
+    pub fn replace(&self, on_overflow: OnOverflow, target: &Expr) -> TokenStream {
         let t = self.width.to_token_stream();
         // The mask allows us to clear to relevant bits in the target before applying replacements.
         let mut replacement_mask = 0u128;
@@ -142,8 +142,7 @@ impl Template {
                     var.to_token_stream(),
                     segment,
                     self.width,
-                    // TODO: Switch to Corrupt once adequate testing is in place.
-                    OnOverflow::Panic,
+                    on_overflow,
                 );
                 replacements.push(field);
                 replacement_mask |= location.to_mask();
