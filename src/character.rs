@@ -107,7 +107,7 @@ impl Characters {
         let literal_string: String = self.0.iter()
             .map(|&c| if c == Character::One { '1' } else { '0' })
             .collect();
-        Some(u128::from_str_radix(&literal_string, 2).unwrap())
+        Some(u128::from_str_radix(&literal_string, 2).expect("All digits should be '0' or '1'"))
     }
 
     // Return '1's where there is a literal Character, '0's everywhere else.
@@ -115,7 +115,7 @@ impl Characters {
         let literal_string: String = self.0.iter()
             .map(|&c| if c == Character::Zero || c == Character::One { '1' } else { '0' })
             .collect();
-        u128::from_str_radix(&literal_string, 2).unwrap()
+        u128::from_str_radix(&literal_string, 2).expect("All digits should be '0' or '1'")
     }
 
     // Return true if there are any periods among the Characters.
@@ -134,7 +134,7 @@ impl Characters {
 
     // The count of Characters.
     pub fn width(&self) -> u8 {
-        u8::try_from(self.0.len()).unwrap()
+        u8::try_from(self.0.len()).expect("Template width should be under 256")
     }
 
     // Iterate from the first to the last Character.

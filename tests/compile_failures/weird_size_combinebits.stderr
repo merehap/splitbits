@@ -4,4 +4,4 @@ error: proc macro panicked
 5 |     combinebits!("aaa aaaa");
   |     ^^^^^^^^^^^^^^^^^^^^^^^^
   |
-  = help: message: Template width must be 8, 16, 32, 64, or 128, but was 7.
+  = help: message: Template must have a valid width: "Template width must be 8, 16, 32, 64, or 128, but was 7."

@@ -4,4 +4,4 @@ error: proc macro panicked
 5 |     combinebits!(overflow=explode, "aaaa aaaa");
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
-  = help: message: called `Result::unwrap()` on an `Err` value: "'explode' is an invalid overflow option. Options: 'truncate', 'panic', 'corrupt', 'saturate'."
+  = help: message: Valid overflow setting value must be passed: "'explode' is an invalid overflow option. Options: 'truncate', 'panic', 'corrupt', 'saturate'."

@@ -15,10 +15,10 @@ pub enum Type {
 
 impl Type {
     // Create a valid Type for a Template given a template width.
-    pub fn for_template(bit_count: u8) -> Self {
+    pub fn for_template(bit_count: u8) -> Result<Self, String> {
         match bit_count {
-            8 | 16 | 32 | 64 | 128 => Self::Num(BitCount::new(bit_count).unwrap()),
-            _ => panic!("Template width must be 8, 16, 32, 64, or 128, but was {bit_count}."),
+            8 | 16 | 32 | 64 | 128 => Ok(Self::Num(BitCount::new(bit_count)?)),
+            _ => Err(format!("Template width must be 8, 16, 32, 64, or 128, but was {bit_count}.")),
         }
     }
 
@@ -27,17 +27,17 @@ impl Type {
      * Standard Precision will result in the Type being the smallest built-in integer type that is
      * equal to or larger than the specified bit_count.
      */
-    pub fn for_field(bit_count: u8, precision: Precision) -> Self {
+    pub fn for_field(bit_count: u8, precision: Precision) -> Result<Self, String> {
         match bit_count {
-            0 => panic!("Fields cannot have zero bits."),
-            1 => Self::Bool,
-            1..=128 if precision == Precision::Ux => Self::Num(BitCount::new(bit_count).unwrap()),
-            2..=8    => Self::Num(BitCount::U8),
-            9..=16   => Self::Num(BitCount::U16),
-            17..=32  => Self::Num(BitCount::U32),
-            33..=64  => Self::Num(BitCount::U64),
-            65..=128 => Self::Num(BitCount::U128),
-            129..=u8::MAX => panic!("Integers larger than u128 are not supported."),
+            0 => Err("Fields cannot have zero bits.".into()),
+            1 => Ok(Self::Bool),
+            1..=128 if precision == Precision::Ux => Ok(Self::Num(BitCount::new(bit_count)?)),
+            2..=8    => Ok(Self::Num(BitCount::U8)),
+            9..=16   => Ok(Self::Num(BitCount::U16)),
+            17..=32  => Ok(Self::Num(BitCount::U32)),
+            33..=64  => Ok(Self::Num(BitCount::U64)),
+            65..=128 => Ok(Self::Num(BitCount::U128)),
+            129..=u8::MAX => Err("Integers larger than u128 are not supported.".into()),
         }
     }
 
@@ -52,8 +52,9 @@ impl Type {
             return Err("Type must be bool or start with 'u'.".into());
         }
 
-        let count: u8 = text.parse().unwrap();
-        Ok(Type::Num(BitCount::new(count).unwrap()))
+        let count: u8 = text.parse()
+            .map_err(|err: std::num::ParseIntError| err.to_string())?;
+        Ok(Type::Num(BitCount::new(count)?))
     }
 
     // Return true if the Type corresponds to a built-in type (bool, u8, u16, u32, u64, u128).
@@ -65,7 +66,7 @@ impl Type {
     }
 
     // Combine two Types to create a larger, Standard-precision type.
-    pub fn concat(self, other: Self) -> Self {
+    pub fn concat(self, other: Self) -> Result<Self, String> {
         Self::for_field(self.bit_count() + other.bit_count(), Precision::Standard)
     }
 

@@ -26,16 +26,14 @@ use crate::r#type::{Type, Precision};
 
 // TODO:
 // * Put compile checks behind different target so compiler updates don't break building.
+// * Determine if Precision is relevant for replacebits (compare to splitbits).
 // * Determine if truncate or panic should be the default for combinebits and replacebits.
-// * Better error messages.
-// ** Better error messages when args are out of order.
-// * Tests that confirm non-compilation cases.
-// ** Bad setting name. Bad setting value.
 // * splitbits_named_into isn't into-ing.
 // * Add comments that show example macro expansion fragments.
 // * Split tests into multiple files.
 // After 0.1.0:
 // * Create abstract syntax trees instead of quoting prematurely.
+// * Extract argument parsing.
 // * Ensure overflow behavior usability in const contexts.
 // * Add base 8, base 32, and base 64.
 // ** Add build-your-own splitbits with other Bases.
@@ -216,10 +214,8 @@ fn combinebits_base(
     input: proc_macro::TokenStream,
     base: Base,
 ) -> proc_macro::TokenStream {
-    let parts = Parser::parse2(
-        Punctuated::<Expr, Token![,]>::parse_terminated,
-        input.into(),
-    ).unwrap();
+    let parts = Parser::parse2(Punctuated::<Expr, Token![,]>::parse_terminated, input.into())
+        .expect("combinebits! argument list should be formatted sanely");
     let mut parts: Vec<_> = parts.into_iter().collect();
     assert!(!parts.is_empty(), "combinebits! must take at least one argument (the template).");
 
@@ -230,7 +226,8 @@ fn combinebits_base(
         assert_eq!(setting, "overflow",
             "Only the 'overflow' setting is supported, but found '{setting}'.");
         parts.remove(0);
-        on_overflow = OnOverflow::parse(&value).unwrap();
+        on_overflow = OnOverflow::parse(&value)
+            .expect("Valid overflow setting value must be passed");
     }
 
     let template = Template::from_expr(&parts.pop().unwrap(), base, Precision::Ux);
@@ -244,7 +241,8 @@ fn combinebits_base(
 
 fn split_then_combine_base(input: proc_macro::TokenStream, base: Base) -> proc_macro::TokenStream {
     const PRECISION: Precision = Precision::Standard;
-    let parts = Parser::parse2(Punctuated::<Expr, Token![,]>::parse_terminated, input.into()).unwrap();
+    let parts = Parser::parse2(Punctuated::<Expr, Token![,]>::parse_terminated, input.into())
+        .expect("splitbits_then_combine! argument list should be formatted sanely");
     let parts: Vec<Expr> = parts.into_iter().collect();
     assert!(parts.len() >= 3);
     assert!(parts.len() % 2 == 1);
@@ -274,7 +272,8 @@ fn replacebits_base(
     base: Base,
     precision: Precision,
 ) -> proc_macro::TokenStream {
-    let parts = Parser::parse2(Punctuated::<Expr, Token![,]>::parse_terminated, input.clone().into()).unwrap();
+    let parts = Parser::parse2(Punctuated::<Expr, Token![,]>::parse_terminated, input.clone().into())
+        .expect("replacebits! argument list should be formatted sanely");
     let mut parts: Vec<_> = parts.into_iter().collect();
     assert!(parts.len() > 1,
         "replacebits must take at least two arguments: \
@@ -305,7 +304,8 @@ fn parse_splitbits_input(
     base: Base,
     precision: Precision,
 ) -> (Expr, Template, Option<Type>) {
-    let parts = Parser::parse2(Punctuated::<Expr, Token![,]>::parse_terminated, item.clone()).unwrap();
+    let parts = Parser::parse2(Punctuated::<Expr, Token![,]>::parse_terminated, item.clone())
+        .expect("splitbits! argument list should be formatted sanely");
     let mut parts: Vec<_> = parts.into_iter().collect();
     assert!(parts.len() > 1,
         "splitbits must take at least two arguments: \
@@ -340,7 +340,11 @@ fn parse_splitbits_input(
 
 fn parse_assignment(expr: &Expr) -> Option<(String, String)> {
     if let Expr::Assign(ExprAssign { left, right, ..}) = expr {
-        Some((expr_to_ident(left).unwrap(), expr_to_ident(right).unwrap()))
+        let left = expr_to_ident(left)
+            .expect("Setting name must be entirely alphabetical characters");
+        let right = expr_to_ident(right)
+            .expect("Setting value must be entirely alphabetical characters");
+        Some((left, right))
     } else {
         None
     }

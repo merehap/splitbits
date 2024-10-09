@@ -38,7 +38,8 @@ impl Template {
         reject_higher_base_chars(&template_string, base);
         let characters = Characters::from_str(&template_string, base);
 
-        let width = Type::for_template(characters.width());
+        let width = Type::for_template(characters.width())
+            .expect("Template must have a valid width");
         let mut locations_by_name: Vec<(Name, Vec<Location>)> = Vec::new();
         for name in characters.to_names() {
             let locations: Vec<Location> = characters.iter()
@@ -50,9 +51,9 @@ impl Template {
                     if c == Character::Name(name) {
                         let segment: Vec<_> = segment.collect();
                         let width = segment.len().try_into()
-                            .expect("segment to be at most 255 characters");
+                            .expect("Segment should be under 256 characters");
                         let mask_offset = segment[0].0.try_into()
-                            .expect("segment offset to be at most 255 characters");
+                            .expect("Segment offset should be under 256 characters");
                         Some(Location { width, mask_offset })
                     } else {
                         None
@@ -136,6 +137,7 @@ impl Template {
                     quote! { & (#mask as #width) }
                 };
 
+                // TODO: Should this be an expect() instead of unwrap()?
                 let segment = quote! { ((#width::try_from(#name #shift).unwrap()) #mask) };
                 segment_offset += location.width();
                 let field = location.place_field_segment(

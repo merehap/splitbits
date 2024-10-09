@@ -32,6 +32,7 @@ impl Field {
         min_size: Option<Type>,
         locations: &[Location],
     ) -> Self {
+        assert!(!locations.is_empty(), "A Field must have at least one Location.");
         // Create one Segment per Location, increasing the segment offset as it goes.
         let mut segment_offset = 0;
         let mut segments = Vec::new();
@@ -45,7 +46,8 @@ impl Field {
         let bit_width = locations.iter()
             .map(|location| location.width())
             .sum();
-        let mut bit_width = Type::for_field(bit_width, precision);
+        let mut bit_width = Type::for_field(bit_width, precision)
+            .expect("Field should be shorter than 256 characters");
         if let Some(min_size) = min_size && min_size > bit_width {
             bit_width = min_size;
         }
@@ -58,9 +60,11 @@ impl Field {
         let t = self.bit_width.to_token_stream();
         let mut segments = self.segments.iter().map(Segment::to_token_stream);
         if self.bit_width == Type::Bool {
-            let segment = segments.next().unwrap();
+            let segment = segments.next()
+                .expect("At least one Segment should be present in a Field.");
             quote! { (#segment) != 0 }
         } else {
+            // TODO: Is there a good expect() message we could use here?
             quote! { #t::try_from(#(#segments)|*).unwrap() }
         }
     }
@@ -96,6 +100,9 @@ impl Field {
     pub fn concat(&self, lower: &Self) -> Self {
         assert_eq!(self.name, lower.name);
 
+        let bit_width = self.bit_width.concat(lower.bit_width)
+            .expect("Concatenation of Fields should not result in a Field wider than 255 characters");
+
         let mut new_segments = Vec::new();
         // Shift all of the existing Segments to the left to make room for the new segments.
         for segment in &self.segments {
@@ -111,7 +118,7 @@ impl Field {
         Self {
             name: self.name,
             segments: new_segments,
-            bit_width: self.bit_width.concat(lower.bit_width),
+            bit_width,
         }
     }
 
