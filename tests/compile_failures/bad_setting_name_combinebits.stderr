@@ -1,0 +1,9 @@
+error: proc macro panicked
+ --> tests/compile_failures/bad_setting_name_combinebits.rs:5:5
+  |
+5 |     combinebits!(explode=panic, "aaaa aaaa");
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: assertion `left == right` failed: Only the 'overflow' setting is supported, but found 'explode'.
+            left: "explode"
+           right: "overflow"

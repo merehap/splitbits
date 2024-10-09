@@ -1,0 +1,7 @@
+error: proc macro panicked
+ --> tests/compile_failures/empty_combinebits.rs:4:5
+  |
+4 |     combinebits!();
+  |     ^^^^^^^^^^^^^^
+  |
+  = help: message: combinebits! must take at least one argument (the template).

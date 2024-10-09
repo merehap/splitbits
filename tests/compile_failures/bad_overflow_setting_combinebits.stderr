@@ -1,0 +1,7 @@
+error: proc macro panicked
+ --> tests/compile_failures/bad_overflow_setting_combinebits.rs:5:5
+  |
+5 |     combinebits!(overflow=explode, "aaaa aaaa");
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: called `Result::unwrap()` on an `Err` value: "'explode' is an invalid overflow option. Options: 'truncate', 'panic', 'corrupt', 'saturate'."

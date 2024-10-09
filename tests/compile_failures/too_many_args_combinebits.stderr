@@ -1,0 +1,16 @@
+error: proc macro panicked
+ --> tests/compile_failures/too_many_args_combinebits.rs:5:5
+  |
+5 |     combinebits!(a, "aaaa aaaa", taco);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: The template expression must come after the input value(s), and must be a literal, but found:
+          taco
+
+error: proc macro panicked
+ --> tests/compile_failures/too_many_args_combinebits.rs:6:5
+  |
+6 |     combinebits!(a, "aaaa aaaa", "aaaa aaaa");
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: Only one template must be present, but found this string literal too: 'aaaa aaaa'.
