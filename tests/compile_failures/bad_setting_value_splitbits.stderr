@@ -1,0 +1,7 @@
+error: proc macro panicked
+ --> tests/compile_failures/bad_setting_value_splitbits.rs:4:5
+  |
+4 |     splitbits!(min=pokemon, 0b11011101, "aaabbccc");
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: Invalid type for setting 'min'. Type must be bool or start with 'u'.

@@ -1,0 +1,9 @@
+error: proc macro panicked
+ --> tests/compile_failures/bad_setting_name_splitbits.rs:4:5
+  |
+4 |     splitbits!(pokemon=standard, 0b11011101, "aaabbccc");
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: assertion `left == right` failed: Only 'min' is allowed as a setting.
+            left: "pokemon"
+           right: "min"

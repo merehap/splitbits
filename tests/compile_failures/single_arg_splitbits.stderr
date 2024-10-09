@@ -1,0 +1,17 @@
+error: proc macro panicked
+ --> tests/compile_failures/single_arg_splitbits.rs:4:5
+  |
+4 |     splitbits!(0b11011101);
+  |     ^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: splitbits must take at least two arguments: an input value then a template. Found:
+          `0b11011101`
+
+error: proc macro panicked
+ --> tests/compile_failures/single_arg_splitbits.rs:5:5
+  |
+5 |     splitbits!("aaabbccc");
+  |     ^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: splitbits must take at least two arguments: an input value then a template. Found:
+          `"aaabbccc"`

@@ -1,0 +1,8 @@
+error: proc macro panicked
+ --> tests/compile_failures/too_many_args_splitbits.rs:4:5
+  |
+4 |     splitbits!(min=u8, 0b11011101, "aaabbccc", whatisthisthing);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: splitbits must take at most three arguments: a precision, then an input value, then a template. Found:
+          `min=u8, 0b11011101, "aaabbccc", whatisthisthing`

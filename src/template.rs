@@ -167,8 +167,15 @@ impl Template {
 
     // Convert a template expression into a String. Useful for error messages.
     pub fn template_string(template: &Expr) -> String {
-        let Expr::Lit(template) = template.clone() else { panic!("Expr must be a literal.") };
-        let Lit::Str(template) = template.lit else { panic!("Expr must be a string literal.") };
+        let template_text = quote! { #template };
+        let Expr::Lit(template) = template.clone() else {
+            panic!("The template expression must come after the input value(s), \
+                and must be a literal, but found:\n{template_text}");
+        };
+        let Lit::Str(template) = template.lit else {
+            panic!("The template expression must come after the input value(s), \
+                and must be a string literal, but found:\n{template_text}");
+        };
         template.value()
     }
 

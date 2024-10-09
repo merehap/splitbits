@@ -1,0 +1,8 @@
+error: proc macro panicked
+ --> tests/compile_failures/empty_splitbits.rs:4:5
+  |
+4 |     splitbits!();
+  |     ^^^^^^^^^^^^
+  |
+  = help: message: splitbits must take at least two arguments: an input value then a template. Found:
+          ``

@@ -1,0 +1,8 @@
+error: proc macro panicked
+ --> tests/compile_failures/swapped_splitbits.rs:4:5
+  |
+4 |     splitbits!("aaabbccc", 0b11011101);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: The template expression must come after the input value(s), and must be a string literal, but found:
+          0b11011101

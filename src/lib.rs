@@ -285,16 +285,22 @@ fn parse_splitbits_input(
     precision: Precision,
     literals_allowed: LiteralsAllowed,
 ) -> (Expr, Template, Option<Type>) {
-    let parts = Parser::parse2(Punctuated::<Expr, Token![,]>::parse_terminated, item).unwrap();
+    let parts = Parser::parse2(Punctuated::<Expr, Token![,]>::parse_terminated, item.clone()).unwrap();
     let mut parts: Vec<_> = parts.into_iter().collect();
-    assert!(parts.len() == 2 || parts.len() == 3);
+    assert!(parts.len() > 1,
+        "splitbits must take at least two arguments: \
+        an input value then a template. Found:\n`{item}`");
+    assert!(parts.len() <= 3,
+        "splitbits must take at most three arguments: \
+        a precision, then an input value, then a template. Found:\n`{item}`");
 
     let mut min_size = None;
     if parts.len() == 3 {
         let (setting, value) = parse_assignment(&parts[0])
             .expect("the first argument to be a 'min' setting since three arguments were supplied");
         assert_eq!(setting, "min", "Only 'min' is allowed as a setting.");
-        let size = Type::parse(value).unwrap();
+        let size = Type::parse(value)
+            .unwrap_or_else(|err_string| panic!("Invalid type for setting 'min'. {err_string}"));
         assert!(precision != Precision::Standard || size.is_standard(), "Type '{size}' is only supported in _ux macros.");
         min_size = Some(size);
 

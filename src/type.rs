@@ -49,7 +49,7 @@ impl Type {
 
         let u = text.remove(0);
         if u != 'u' {
-            return Err("Type str must start with 'u' or equal 'bool'.".into());
+            return Err("Type must be bool or start with 'u'.".into());
         }
 
         let count: u8 = text.parse().unwrap();
