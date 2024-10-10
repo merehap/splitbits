@@ -29,6 +29,8 @@ use crate::r#type::{Type, Precision};
 // * Put compile checks behind different target so compiler updates don't break building.
 // * splitbits_named_into isn't into-ing.
 // * Split tests into multiple files.
+// * Add missing variable test for splitbits.
+// * Add wrong number of args test for splitbits.
 // After 0.1.0:
 // * Create abstract syntax trees instead of quoting prematurely.
 // ** Add comments that show example macro expansion fragments.
@@ -43,11 +45,141 @@ use crate::r#type::{Type, Precision};
 // * Add splitbits_capture.
 // * Add file-level config for overflow and min.
 
+/// Extract bit fields from an integer data type by matching against a template,
+/// storing them as fields in a generated struct.
+/// ```
+/// use splitbits::splitbits;
+///
+/// let fields = splitbits!(0b11110000, "aaabbbbb");
+/// // Single-letter field names, directly from the unique letters in the template above.
+/// assert_eq!(fields.a, 0b111);
+/// assert_eq!(fields.b, 0b10000);
+/// ```
+///
+/// For hexadecimal templates (instead of binary), see [`splithex!`]
+/// 
+/// If single-letter variable names aren't enough, see [`splitbits_named!`]
+///
+/// The input variable can be any standard unsigned integer type (u8, u16, u32, u64, u128).
+/// For example, a u16:
+/// ```
+/// use splitbits::splitbits;
+///
+/// let input: u16 = 0b1111_0000_1010_0011;
+/// // Note how you can insert spaces wherever you like in the template without affecting meaning.
+/// let nibbles = splitbits!(input, "aaaa bbbb cccc dddd");
+/// assert_eq!(nibbles.a, 0b1111u8);
+/// assert_eq!(nibbles.b, 0b0000u8);
+/// assert_eq!(nibbles.c, 0b1010u8);
+/// assert_eq!(nibbles.d, 0b0011u8);
+/// ```
+/// (If you need non-standard width integers (e.g. `u7`, `u1`, `u39`) , see [`splitbits_ux!`])
+///
+/// By default, each field will be assigned the smallest type that will fit it. To override this
+/// behavior, use the min setting (valid options: `bool`, `u8`, `u16`, `u32`, `u64`, and `u128`):
+/// ```
+/// use splitbits::splitbits;
+///
+/// let input: u32 = 0b11110000_10100011_11110000_10100011;
+/// // Note how you can insert spaces wherever you like in the template without affecting meaning.
+/// let fields = splitbits!(min=u16, input, "aaaaaaaa bbbbbbbb bbbbbbbb ccdddddd");
+/// assert_eq!(fields.a, 0b1111_0000u16);
+/// assert_eq!(fields.b, 0b10100011_11110000u16);
+/// assert_eq!(fields.c, 0b10u16);
+/// assert_eq!(fields.d, 0b10_0011u16);
+/// ```
+///
+/// By default, single-bit fields are extracted as booleans (1 = true, 0 = false):
+/// ```
+/// use splitbits::splitbits;
+///
+/// let fields = splitbits!(0b10111010, "beefyman");
+/// assert_eq!(fields.b, true);
+/// assert_eq!(fields.e, 0b01);
+/// assert_eq!(fields.f, true);
+/// assert_eq!(fields.y, true);
+/// assert_eq!(fields.m, false);
+/// assert_eq!(fields.a, true);
+/// assert_eq!(fields.n, false);
+/// ```
+///
+/// If you don't want any booleans, you can set the min setting to `u8` (or
+/// higher):
+/// ```
+/// use splitbits::splitbits;
+///
+/// let fields = splitbits!(min=u8, 0b10111010, "beefyman");
+/// assert_eq!(fields.b, 1);
+/// assert_eq!(fields.e, 0b01);
+/// assert_eq!(fields.f, 1);
+/// assert_eq!(fields.y, 1);
+/// assert_eq!(fields.m, 0);
+/// assert_eq!(fields.a, 1);
+/// assert_eq!(fields.n, 0);
+/// ```
+/// (If you want `u1`s instead of `bool`s, see [`splitbits_ux!`])
+///
+/// To ignore certain bits, use periods as placeholders:
+/// ```
+/// use splitbits::splitbits;
+///
+/// let letters = splitbits!(0b11000011, "aabb..zz");
+/// assert_eq!(letters.a, 0b11);
+/// assert_eq!(letters.b, 0b00);
+/// assert_eq!(letters.z, 0b11);
+/// ```
+///
+/// A field may exist as multiple segments in a template:
+/// ```
+/// use splitbits::splitbits;
+///
+/// let coordinates = splitbits!(0b11000011, "xxyyyyxx");
+/// assert_eq!(coordinates.x, 0b1111);
+/// assert_eq!(coordinates.y, 0b0000);
+/// ```
 #[proc_macro]
 pub fn splitbits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     splitbits_base(input, Base::Binary, Precision::Standard)
 }
 
+/// Same as [`splitbits!`], except that the widths of the generated fields are precise to-the-bit.
+/// Importing the the ux crate is required.
+/// ```
+/// use splitbits::splitbits_ux;
+/// use ux::{u3, u5};
+///
+/// let fields = splitbits_ux!(0b11110000, "aaabbbbb");
+/// // Single-letter field names, directly from the unique letters in the template above.
+/// assert_eq!(fields.a, u3::new(0b111));
+/// assert_eq!(fields.b, u5::new(0b10000));
+/// ```
+///
+/// The min setting determines the smallest type to store a field.
+/// It can be any value from `u1` to `u128` (though the default is `bool`):
+/// ```
+/// use splitbits::splitbits_ux;
+/// use ux::u6;
+///
+/// let fields = splitbits_ux!(min=u6, 0b11110000, "aaabbbbb");
+/// // Single-letter field names, directly from the unique letters in the template above.
+/// assert_eq!(fields.a, u6::new(0b111));
+/// assert_eq!(fields.b, u6::new(0b10000));
+/// ```
+///
+/// To prevent `bool`s from being used (instead using `u1`s), set min to `u1`:
+/// ```
+/// use splitbits::splitbits_ux;
+/// use ux::{u1, u2};
+///
+/// let fields = splitbits_ux!(min=u1, 0b10111010, "beefyman");
+/// assert_eq!(fields.b, u1::new(1));
+/// assert_eq!(fields.e, u2::new(0b01));
+/// assert_eq!(fields.f, u1::new(1));
+/// assert_eq!(fields.y, u1::new(1));
+/// assert_eq!(fields.m, u1::new(0));
+/// assert_eq!(fields.a, u1::new(1));
+/// assert_eq!(fields.n, u1::new(0));
+/// ```
 #[proc_macro]
 pub fn splitbits_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     splitbits_base(input, Base::Binary, Precision::Ux)
