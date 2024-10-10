@@ -143,7 +143,7 @@ pub fn splitbits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 }
 
 /// Same as [`splitbits!`], except that the widths of the generated fields are precise to-the-bit.
-/// Importing the the ux crate is required.
+/// A dependency on the ux crate is required.
 /// ```
 /// use splitbits::splitbits_ux;
 /// use ux::{u3, u5};
@@ -166,7 +166,7 @@ pub fn splitbits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// assert_eq!(fields.b, u6::new(0b10000));
 /// ```
 ///
-/// To prevent `bool`s from being used (instead using `u1`s), set min to `u1`:
+/// To prevent `bool`s from being used, set min to `u1`:
 /// ```
 /// use splitbits::splitbits_ux;
 /// use ux::{u1, u2};
@@ -185,31 +185,180 @@ pub fn splitbits_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     splitbits_base(input, Base::Binary, Precision::Ux)
 }
 
+/// Same as [`splitbits!`], except that the template characters represent hexadecimal digits.
+/// ```
+/// use splitbits::splithex;
+///
+/// // Parse an IPV6 address.
+/// let groups = splithex!(
+///        0x2001_0db8_85a3_0000_0000_8a2e_0370_7334,
+///         "aaaa bbbb cccc dddd eeee ffff gggg hhhh",
+/// );
+/// assert_eq!(groups.a, 0x2001u16);
+/// assert_eq!(groups.b, 0x0db8u16);
+/// assert_eq!(groups.c, 0x85a3u16);
+/// assert_eq!(groups.d, 0x0000u16);
+/// assert_eq!(groups.e, 0x0000u16);
+/// assert_eq!(groups.f, 0x8a2eu16);
+/// assert_eq!(groups.g, 0x0370u16);
+/// assert_eq!(groups.h, 0x7334u16);
+/// ```
+///
+/// Placeholders for hexadecimal macros ignore 4 bits, not just 1:
+/// ```
+/// use splitbits::splithex;
+///
+/// let fields = splithex!(0xABCDEF01, "xxx..y..");
+/// assert_eq!(fields.x, 0xABC);
+/// assert_eq!(fields.y, 0xF);
+/// ```
+///
+/// Using the min setting:
+/// ```
+/// use splitbits::splithex;
+///
+/// let fields = splithex!(
+///        min=u64,
+///        0x2F010DB8_85A30000,
+///         "abbccccc zzzzzzzz",
+/// );
+/// assert_eq!(fields.a, 0x2u64);
+/// assert_eq!(fields.b, 0xF0u64);
+/// assert_eq!(fields.c, 0x10DB8u64);
+/// assert_eq!(fields.z, 0x85A30000u64);
+/// ```
 #[proc_macro]
 pub fn splithex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     splitbits_base(input, Base::Hexadecimal, Precision::Standard)
 }
 
+/// Same as [`splithex!`], except that the widths of the generated fields are precise to-the-bit.
+/// A dependency on the ux crate is required.
+/// ```
+/// use splitbits::splithex_ux;
+/// use ux::{u4, u12, u24};
+///
+/// // Parse an IPV6 address.
+/// let fields = splithex_ux!(
+///        0x2F010DB8_85A30000,
+///         "abbccc.. ..zzzzzz",
+/// );
+/// assert_eq!(fields.a, u4::new(0x2));
+/// assert_eq!(fields.b, 0xF0u8);
+/// assert_eq!(fields.c, u12::new(0x10D));
+/// assert_eq!(fields.z, u24::new(0xA30000));
+/// ```
+///
+/// Using the min setting:
+/// ```
+/// use splitbits::splithex_ux;
+/// use ux::{u13, u24};
+///
+/// let fields = splithex_ux!(
+///        min=u13,
+///        0x2F010DB8_85A30000,
+///         "abbccc.. ..zzzzzz",
+/// );
+/// assert_eq!(fields.a, u13::new(0x2));
+/// assert_eq!(fields.b, u13::new(0xF0));
+/// assert_eq!(fields.c, u13::new(0x10D));
+/// assert_eq!(fields.z, u24::new(0xA30000));
+/// ```
 #[proc_macro]
 pub fn splithex_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     splitbits_base(input, Base::Hexadecimal, Precision::Ux)
 }
 
+/// Same as [`splitbits!`], except that full-length variable names can be used. Returns a tuple
+/// instead of a generated struct. If there is only a single field specified in the template,
+/// returns a single variable instead (not a 1-tuple). Fields are returned in the order that they
+/// appear in the template, and the single character template names are discarded.
+/// ```
+/// use splitbits::splitbits_named;
+///
+/// let (apple_count, banana_count) = splitbits_named!(0b11110000, "aaabbbbb");
+/// assert_eq!(apple_count, 0b111);
+/// assert_eq!(banana_count, 0b10000);
+/// ```
+///
+/// Existing variables can be set, rather than declaring new ones:
+/// ```
+/// use splitbits::splitbits_named;
+///
+/// let mut apple_count = 5;
+/// let banana_count;
+///
+/// /* Various operations on apple_count and banana_count omitted here. */
+///
+/// // Overwrite the existing values of apple_count and banana_count.
+/// (apple_count, banana_count) = splitbits_named!(0b11110000, "aaabbbbb");
+/// assert_eq!(apple_count, 0b111);
+/// assert_eq!(banana_count, 0b10000);
+/// ```
+///
+/// Just as with `[splitbits!]`, the template can have spaces for readability, period placeholders
+/// for ignoring certain bits, and fields broken up into multiple segments:
+/// ```
+/// use splitbits::splitbits_named;
+///
+/// let input = 0b1111_0000;
+/// let (apple_count, banana_count) = splitbits_named!(min=u32, input, "a b.b. aaa");
+/// assert_eq!(apple_count, 0b1000u32);
+/// assert_eq!(banana_count, 0b11u32);
+/// ```
 #[proc_macro]
 pub fn splitbits_named(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     splitbits_named_base(input, Base::Binary, Precision::Standard)
 }
 
+/// Same as [`splitbits_named!`], except that the widths of the generated fields are precise to-the-bit.
+/// A dependency on the ux crate is required.
+/// ```
+/// use splitbits::splitbits_named_ux;
+/// use ux::{u3, u5};
+///
+/// let (apple_count, banana_count) = splitbits_named_ux!(0b11110000, "aaabbbbb");
+/// assert_eq!(apple_count, u3::new(0b111));
+/// assert_eq!(banana_count, u5::new(0b10000));
+/// ```
 #[proc_macro]
 pub fn splitbits_named_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     splitbits_named_base(input, Base::Binary, Precision::Ux)
 }
 
+/// Same as [`splitbits_named!`] except with hexadecimal digits in the template.
+/// ```
+/// use splitbits::splithex_named;
+///
+/// let (zebras, bees, beavers, fish) = splithex_named!(
+///     0x2F010DB8_85A30000,
+///      "zbbvvvvv ffffffff",
+/// );
+/// assert_eq!(zebras,  0x2);
+/// assert_eq!(bees,    0xF0);
+/// assert_eq!(beavers, 0x10DB8);
+/// assert_eq!(fish,    0x85A30000);
+/// ```
 #[proc_macro]
 pub fn splithex_named(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     splitbits_named_base(input, Base::Hexadecimal, Precision::Standard)
 }
 
+/// Same as [`splithex_named!`], except that the widths of the generated fields are precise
+/// to-the-bit. A dependency on the ux crate is required.
+/// ```
+/// use splitbits::splithex_named_ux;
+/// use ux::{u4, u20};
+///
+/// let (zebras, bees, beavers, fish) = splithex_named_ux!(
+///     0x2F010DB8_85A30000,
+///      "zbbvvvvv ffffffff",
+/// );
+/// assert_eq!(zebras,  u4::new(0x2));
+/// assert_eq!(bees,    0xF0u8);
+/// assert_eq!(beavers, u20::new(0x10DB8));
+/// assert_eq!(fish,    0x85A30000u32);
+/// ```
 #[proc_macro]
 pub fn splithex_named_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     splitbits_named_base(input, Base::Hexadecimal, Precision::Ux)
