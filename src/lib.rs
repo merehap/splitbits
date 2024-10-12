@@ -562,6 +562,16 @@ pub fn combinebits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     combinebits_base(input, Base::Binary)
 }
 
+/// Same as [`combinebits!`] except the template uses hexadecimal digits rather than binary digits.
+/// ```
+/// use splitbits::combinehex;
+///
+/// let s: u32 = 0x89ABCDEF;
+/// let m: u16 = 0x1111;
+/// let e: u16 = 0x2345;
+/// let result = combinehex!("ssss ssss mmmm eeee");
+/// assert_eq!(result,      0x89AB_CDEF_1111_2345u64);
+/// ```
 #[proc_macro]
 pub fn combinehex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     combinebits_base(input, Base::Hexadecimal)
