@@ -57,7 +57,7 @@ use crate::r#type::{Type, Precision};
 ///
 /// For hexadecimal templates (instead of binary), see [`splithex!`]
 /// 
-/// If single-letter variable names aren't enough, see [`splitbits_named!`]
+/// If single-letter variable names aren't good enough, see [`splitbits_named!`]
 ///
 /// The input variable can be any standard unsigned integer type (u8, u16, u32, u64, u128).
 /// For example, a u16:
@@ -301,7 +301,7 @@ pub fn splithex_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// use splitbits::splitbits_named;
 ///
 /// let input = 0b1111_0000;
-/// let (apple_count, banana_count) = splitbits_named!(min=u32, input, "a b.b. aaa");
+/// let (apple_count, banana_count) = splitbits_named!(min=u32, input, "ab.b .aaa");
 /// assert_eq!(apple_count, 0b1000u32);
 /// assert_eq!(banana_count, 0b11u32);
 /// ```
@@ -501,6 +501,62 @@ pub fn splithex_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::Tok
     splitbits_named_into_base(input, Base::Hexadecimal, Precision::Ux)
 }
 
+/// Combine the bits of multiple variables into a single variable as defined by a template.
+/// ```
+/// use splitbits::combinebits;
+///
+/// let s: u8 = 0b1010_0101;
+/// let m: u8 = 0b1111;
+/// let e: u8 = 0b0000;
+/// let result = combinebits!("ssss ssss mmmm eeee");
+/// assert_eq!(result,       0b1010_0101_1111_0000u16);
+/// ```
+///
+/// If descriptive variable names are desired, then variables can be passed in as arguments.
+/// These variables must occur in the same order in the argument list as the name characters occur
+/// in the template. The single character template names are ignored beyond this.
+/// ```
+/// use splitbits::combinebits;
+///
+/// let start: u8 = 0b1010_0101;
+/// let middle: u8 = 0b1111;
+/// let end: u8 = 0b0000;
+/// let result = combinebits!(start, middle, end, "ssss ssss mmmm eeee");
+/// assert_eq!(result,                           0b1010_0101_1111_0000u16);
+/// ```
+///
+/// An input variable can be split into multiple segments by the template:
+/// ```
+/// use splitbits::combinebits;
+///
+/// let e: u16 = 0b100000_0000001;
+/// let m: u8 = 0b111;
+/// let result = combinebits!("eeee eemm meee eeee");
+/// assert_eq!(result,       0b1000_0011_1000_0001u16);
+/// ```
+///
+/// Bits with a fixed (non-variable) value can be set explicitly in the template:
+/// ```
+/// use splitbits::combinebits;
+///
+/// let a: u8 = 0b10;
+/// let b: u8 = 0b01;
+/// let result = combinebits!("1100aabb");
+/// assert_eq!(result,       0b11001001);
+/// ```
+///
+/// Arbitrary-sized integers from the ux crate can be used as input variables:
+/// ```
+/// use splitbits::combinebits;
+/// use ux::{u1, u3, u7};
+///
+/// let enabled = true;
+/// let x_coord: u7 = u7::new(0b1100000);
+/// let y_coord: u3 = u3::new(0b100);
+/// let z_coord: u1 = u1::new(1);
+/// let result = combinebits!(enabled, x_coord, y_coord, z_coord, "exxxxxxx yyyz0000");
+/// assert_eq!(result,                                           0b11100000_10010000u16);
+/// ```
 #[proc_macro]
 pub fn combinebits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     combinebits_base(input, Base::Binary)

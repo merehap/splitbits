@@ -505,8 +505,9 @@ fn combine_arguments() {
     let fourth: u64 = 0b1000_1000_1000_1000_1000_1000_1000_1000_1000_1000;
     let result = combinebits!(
         first, second, third, fourth,
-        "cccc cccc cccc cabb bbbb 1011 dddd dddd dddd dddd dddd dddd dddd dddd dddd dddd");
-    assert_eq!(result,       0b1010_1010_1010_1100_1111_1011_1000_1000_1000_1000_1000_1000_1000_1000_1000_1000u64);
+         "cccc cccc cccc cabb bbbb 1011 dddd dddd dddd dddd dddd dddd dddd dddd dddd dddd");
+    assert_eq!(result,
+        0b1010_1010_1010_1100_1111_1011_1000_1000_1000_1000_1000_1000_1000_1000_1000_1000u64);
 }
 
 #[test]
