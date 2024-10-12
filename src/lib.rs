@@ -30,6 +30,7 @@ use crate::r#type::{Type, Precision};
 // * Split tests into multiple files.
 // * Add missing variable test for splitbits.
 // * Add wrong number of args test for splitbits.
+// * Incorrect template size test.
 // After 0.1.0:
 // * Create abstract syntax trees instead of quoting prematurely.
 // ** Add comments that show example macro expansion fragments.
@@ -502,6 +503,9 @@ pub fn splithex_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::Tok
 }
 
 /// Combine the bits of multiple variables into a single variable as defined by a template.
+///
+/// By default, input values that are too large for their slot in the template will have their
+/// front bits truncated until they fit. See later examples for how to override this behavior.
 /// ```
 /// use splitbits::combinebits;
 ///
@@ -509,7 +513,7 @@ pub fn splithex_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::Tok
 /// let m: u8 = 0b1111;
 /// let e: u8 = 0b0000;
 /// let result = combinebits!("ssss ssss mmmm eeee");
-/// assert_eq!(result,       0b1010_0101_1111_0000u16);
+/// assert_eq!(result,       0b1010_0101_1111_0000);
 /// ```
 ///
 /// If descriptive variable names are desired, then variables can be passed in as arguments.
@@ -522,7 +526,7 @@ pub fn splithex_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::Tok
 /// let middle: u8 = 0b1111;
 /// let end: u8 = 0b0000;
 /// let result = combinebits!(start, middle, end, "ssss ssss mmmm eeee");
-/// assert_eq!(result,                           0b1010_0101_1111_0000u16);
+/// assert_eq!(result,                           0b1010_0101_1111_0000);
 /// ```
 ///
 /// An input variable can be split into multiple segments by the template:
@@ -532,7 +536,7 @@ pub fn splithex_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::Tok
 /// let e: u16 = 0b100000_0000001;
 /// let m: u8 = 0b111;
 /// let result = combinebits!("eeee eemm meee eeee");
-/// assert_eq!(result,       0b1000_0011_1000_0001u16);
+/// assert_eq!(result,       0b1000_0011_1000_0001);
 /// ```
 ///
 /// Bits with a fixed (non-variable) value can be set explicitly in the template:
@@ -555,7 +559,41 @@ pub fn splithex_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::Tok
 /// let y_coord: u3 = u3::new(0b100);
 /// let z_coord: u1 = u1::new(1);
 /// let result = combinebits!(enabled, x_coord, y_coord, z_coord, "exxxxxxx yyyz0000");
-/// assert_eq!(result,                                           0b11100000_10010000u16);
+/// assert_eq!(result,                                           0b11100000_10010000);
+/// ```
+///
+/// If an input variable is too large for its slot, by default its top bits are truncated, but
+/// other options exist:
+/// ```
+/// use splitbits::combinebits;
+///
+/// let a: u8 = 0b11100001;
+/// let result = combinebits!("00aaaaaa");
+/// assert_eq!(result,       0b00100001);
+///
+/// // overflow=truncate is the default behavior, so the result is the same as above.
+/// let a: u8 = 0b11100001;
+/// let result = combinebits!(overflow=truncate, "00aaaaaa");
+/// assert_eq!(result,                          0b00100001);
+///
+/// // overflow=corrupt is the most efficient option, but corrupts the bits that preceed the
+/// // field slot if an overflow occurs.
+/// let a: u8 = 0b11100001;
+/// let result = combinebits!(overflow=corrupt, "00aaaaaa");
+/// assert_eq!(result,                         0b11100001);
+///
+/// // overflow=saturate sets all the bits of the field to 1s if an overflow occurs.
+/// let a: u8 = 0b11100001;
+/// let result = combinebits!(overflow=saturate, "00aaaaaa");
+/// assert_eq!(result,                          0b00111111);
+/// ```
+///
+/// ```should_panic
+/// use splitbits::combinebits;
+///
+/// // overflow=panic results in a panic if the input variable doesn't fit in its template slot.
+/// let a: u8 = 0b11100001;
+/// let _ = combinebits!(overflow=panic, "00aaaaaa");
 /// ```
 #[proc_macro]
 pub fn combinebits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -563,25 +601,103 @@ pub fn combinebits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 }
 
 /// Same as [`combinebits!`] except the template uses hexadecimal digits rather than binary digits.
+///
+/// Note that hexadecimal literals must be uppercase so that they don't conflict with field name
+/// letters which must be lowercase.
 /// ```
 /// use splitbits::combinehex;
 ///
 /// let s: u32 = 0x89ABCDEF;
-/// let m: u16 = 0x1111;
+/// let m: u8 = 0x11;
 /// let e: u16 = 0x2345;
-/// let result = combinehex!("ssss ssss mmmm eeee");
-/// assert_eq!(result,      0x89AB_CDEF_1111_2345u64);
+/// let result = combinehex!("ssss ssss mmAF eeee");
+/// assert_eq!(result,      0x89AB_CDEF_11AF_2345);
 /// ```
 #[proc_macro]
 pub fn combinehex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     combinebits_base(input, Base::Hexadecimal)
 }
 
+/// Extract bits from multiple input integers by matching against input templates, then combine
+/// those bits into to an integer matching the output template.
+///
+/// The width of a field must match between the input templates and output template.
+///
+/// Placeholder periods are usually needed with this macro for ignoring unused input bits.
+/// ```
+/// use splitbits::splitbits_then_combine;
+///
+/// // While its possible to use this macro on a single line, it's easiest to see the structure like
+/// // this:
+/// // let output = splitbits_then_combine!(
+/// //    input0, input_template0,
+/// //    input1, input_template1,
+/// //    ...
+/// //    inputX, input_templateX,
+/// //            output_template,
+/// // );
+/// let output = splitbits_then_combine!(
+///     0b1111_0000, "aaaa ..bb",
+///     0b1011_1111, "cc.. ....",
+///                  "aaaa bbcc",
+/// );
+/// assert_eq!(output, 0b1111_0010);
+/// ```
+///
+/// Literal 1s and 0s can be hard-coded into the output template:
+/// ```
+/// use splitbits::splitbits_then_combine;
+///
+/// let output = splitbits_then_combine!(
+///     0b1111_0000, "aaaa ..bb",
+///     0b1011_1111, "cc.. ....",
+///                  "aaaa 0101 0000 bbcc",
+/// );
+/// assert_eq!(output, 0b1111_0101_0000_0010);
+/// ```
+///
+/// An input field can be split into segments by the output template:
+/// ```
+/// use splitbits::splitbits_then_combine;
+///
+/// let output = splitbits_then_combine!(
+///     0b1111_0000, "aaaa aa..",
+///     0b1011_1111, "..bb bbbb",
+///                  "aaab bbbb b000 1aaa",
+/// );
+/// assert_eq!(output, 0b1111_1111_1000_1100);
+/// ```
+///
+/// Segments of a field can be combined from different input locations into a single output field.
+/// ```
+/// use splitbits::splitbits_then_combine;
+///
+/// let output = splitbits_then_combine!(
+///     0b1111_0000, "aaaa ..aa",
+///     0b0011_1010, "..aa bbbb",
+///                  "aaaa aaaa 0000 bbbb",
+/// );
+/// assert_eq!(output, 0b1111_0011_0000_1010);
+/// ```
+///
+/// Having all these features in one macro means that there are multiple ways to achieve an
+/// outcome, so consider which way leads to the best readability on a case-by-case basis.
 #[proc_macro]
 pub fn splitbits_then_combine(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     split_then_combine_base(input, Base::Binary)
 }
 
+/// Same as [`splitbits_then_combine!`], except with hexadecimal digits in the template.
+/// ```
+/// use splitbits::splithex_then_combine;
+///
+/// let output = splithex_then_combine!(
+///     0xCDEF_0000, "xxxx ..yy",
+///     0xBA98_1111, "zz.. ....",
+///                  "xxxx 0123 ABCD yyzz",
+/// );
+/// assert_eq!(output, 0xCDEF_0123_ABCD_00BA);
+/// ```
 #[proc_macro]
 pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     split_then_combine_base(input, Base::Hexadecimal)
