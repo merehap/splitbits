@@ -27,7 +27,6 @@ use crate::r#type::{Type, Precision};
 // TODO:
 // * Detailed top-level comments.
 // * Put compile checks behind different target so compiler updates don't break building.
-// * splitbits_named_into isn't into-ing.
 // * Split tests into multiple files.
 // * Add missing variable test for splitbits.
 // * Add wrong number of args test for splitbits.
@@ -364,21 +363,139 @@ pub fn splithex_named_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStr
     splitbits_named_base(input, Base::Hexadecimal, Precision::Ux)
 }
 
+/// Same as [`splitbits_named!`], except the caller can provide the field types, rather than the
+/// macro inferring them. The custom types must implement From/Into for the relevant integer types.
+/// ```
+/// use splitbits::splitbits_named_into;
+///
+/// let (apple_count, banana_count): (u32, u8) = splitbits_named_into!(0b11110000, "aaabbbbb");
+/// assert_eq!(apple_count, 0b111);
+/// assert_eq!(banana_count, 0b10000);
+/// ```
+///
+/// Splitting into custom defined types:
+///
+/// Limitation - A From impl for the custom type must exist from the smallest integer type that
+/// will fit the field. For example, for AppleCount below, which wraps a `u32`, `impl From<u32> for
+/// AppleCount` won't work since "a" is first inferred as a `u8` (not a `u32`).
+/// ```
+/// use splitbits::splitbits_named_into;
+///
+/// let (apple_count, banana_count): (AppleCount, BananaCount) =
+///     splitbits_named_into!(0b11110000, "aaabbbbb");
+/// assert_eq!(apple_count, AppleCount(0b111u32));
+/// assert_eq!(banana_count, BananaCount(0b10000u8));
+///
+/// #[derive(PartialEq, Debug)]
+/// struct AppleCount(u32);
+///
+/// impl From<u8> for AppleCount {
+///     fn from(value: u8) -> Self {
+///         Self(value.into())
+///     }
+/// }
+///
+/// #[derive(PartialEq, Debug)]
+/// struct BananaCount(u8);
+///
+/// impl From<u8> for BananaCount {
+///     fn from(value: u8) -> Self {
+///         Self(value)
+///     }
+/// }
+/// ```
+///
+/// Declaring the fields and their types separate from initialization:
+/// ```
+/// use splitbits::splitbits_named_into;
+///
+/// let apple_count: u32;
+/// let mut banana_count: u8 = 3;
+/// (apple_count, banana_count) = splitbits_named_into!(0b11110000, "aaabbbbb");
+/// assert_eq!(apple_count, 0b111);
+/// assert_eq!(banana_count, 0b10000);
+/// ```
 #[proc_macro]
 pub fn splitbits_named_into(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     splitbits_named_into_base(input, Base::Binary, Precision::Standard)
 }
 
+/// Same as [`splitbits_named_into!`], except that the widths of the generated fields are precise
+/// to-the-bit. A dependency on the ux crate is required.
+/// ```
+/// use splitbits::splitbits_named_into_ux;
+/// use ux::{u6, u10};
+///
+/// let (apple_count, banana_count): (u10, u6) = splitbits_named_into_ux!(0b11110000, "aaabbbbb");
+/// assert_eq!(apple_count, u10::new(0b111));
+/// assert_eq!(banana_count, u6::new(0b10000));
+/// ```
+///
+/// Splitting into custom defined types:
+///
+/// Limitation - A From impl for the custom type must exist from the relevant ux type. For example,
+/// for AppleCount below, which wraps a `u32`, `impl From<u32> for AppleCount` won't work since "a"
+/// is first inferred as a `u3` (not a `u32`).
+/// ```
+/// use splitbits::splitbits_named_into_ux;
+/// use ux::{u3, u5};
+///
+/// let (apple_count, banana_count): (AppleCount, BananaCount) =
+///     splitbits_named_into_ux!(0b11110000, "aaabbbbb");
+/// assert_eq!(apple_count, AppleCount(0b111u32));
+/// assert_eq!(banana_count, BananaCount(u5::new(0b10000)));
+///
+/// #[derive(PartialEq, Debug)]
+/// struct AppleCount(u32);
+///
+/// impl From<u3> for AppleCount {
+///     fn from(value: u3) -> Self {
+///         Self(value.into())
+///     }
+/// }
+///
+/// #[derive(PartialEq, Debug)]
+/// struct BananaCount(u5);
+///
+/// impl From<u5> for BananaCount {
+///     fn from(value: u5) -> Self {
+///         Self(value)
+///     }
+/// }
+/// ```
 #[proc_macro]
 pub fn splitbits_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     splitbits_named_into_base(input, Base::Binary, Precision::Ux)
 }
 
+/// Same as [`splithex_named!`], except the caller can provide the field types, rather than the
+/// macro inferring them. The custom types must implement From/Into for the relevant integer types.
+/// ```
+/// use splitbits::splithex_named_into;
+///
+/// let (apple_count, banana_count): (u16, u32) = splithex_named_into!(0x89ABCDEF, "aaabbbbb");
+/// assert_eq!(apple_count, 0x89A);
+/// assert_eq!(banana_count, 0xBCDEF);
+/// ```
+///
+/// See [`splitbits_named_into!`] for more examples.
 #[proc_macro]
 pub fn splithex_named_into(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     splitbits_named_into_base(input, Base::Hexadecimal, Precision::Standard)
 }
 
+/// Same as [`splithex_named_into!`], except the widths of the generated fields are precise
+/// to-the-bit.
+/// ```
+/// use splitbits::splithex_named_into_ux;
+/// use ux::{u12, u20};
+///
+/// let (apple_count, banana_count): (u12, u20) = splithex_named_into_ux!(0x89ABCDEF, "aaabbbbb");
+/// assert_eq!(apple_count, u12::new(0x89A));
+/// assert_eq!(banana_count, u20::new(0xBCDEF));
+/// ```
+///
+/// See [`splitbits_named_into_ux!`] for more examples.
 #[proc_macro]
 pub fn splithex_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     splitbits_named_into_base(input, Base::Hexadecimal, Precision::Ux)
