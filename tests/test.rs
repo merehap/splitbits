@@ -670,6 +670,16 @@ fn replace_var() {
 }
 
 #[test]
+fn replace_with_literal() {
+    let a = 0b101u16;
+    let b = 0b00001u8;
+    let c = 0b0101u128;
+    let d = false;
+    let result = replacebits!(0b1001_1010_1100_1111u16, "aaab bbbb 0d11 cccc");
+    assert_eq!(result,        0b1010_0001_0011_0101u16);
+}
+
+#[test]
 fn replace_segments() {
     let a = 0b101u16;
     let b = 0b00001u8;

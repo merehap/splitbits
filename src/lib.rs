@@ -25,6 +25,8 @@ use crate::template::Template;
 use crate::r#type::{Type, Precision};
 
 // TODO:
+// * Better error message if a setting is provided to replacebits! but an input isn't.
+// * Fix combinebits! from failing when the template width is less than an input width.
 // * Detailed top-level comments.
 // * Put compile checks behind different target so compiler updates don't break building.
 // * Split tests into multiple files.
@@ -81,7 +83,6 @@ use crate::r#type::{Type, Precision};
 /// use splitbits::splitbits;
 ///
 /// let input: u32 = 0b11110000_10100011_11110000_10100011;
-/// // Note how you can insert spaces wherever you like in the template without affecting meaning.
 /// let fields = splitbits!(min=u16, input, "aaaaaaaa bbbbbbbb bbbbbbbb ccdddddd");
 /// assert_eq!(fields.a, 0b1111_0000u16);
 /// assert_eq!(fields.b, 0b10100011_11110000u16);
@@ -524,7 +525,7 @@ pub fn splithex_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::Tok
 ///
 /// let start: u8 = 0b1010_0101;
 /// let middle: u8 = 0b1111;
-/// let end: u8 = 0b0000;
+/// let end: u16 = 0b0000;
 /// let result = combinebits!(start, middle, end, "ssss ssss mmmm eeee");
 /// assert_eq!(result,                           0b1010_0101_1111_0000);
 /// ```
@@ -562,25 +563,37 @@ pub fn splithex_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::Tok
 /// assert_eq!(result,                                           0b11100000_10010000);
 /// ```
 ///
-/// If an input variable is too large for its slot, by default its top bits are truncated, but
-/// other options exist:
+/// If an input variable is too large for its slot, by default its top bits are truncated (but
+/// other options exist):
 /// ```
 /// use splitbits::combinebits;
 ///
 /// let a: u8 = 0b11100001;
 /// let result = combinebits!("00aaaaaa");
 /// assert_eq!(result,       0b00100001);
+/// ```
+///
+/// ```
+/// use splitbits::combinebits;
 ///
 /// // overflow=truncate is the default behavior, so the result is the same as above.
 /// let a: u8 = 0b11100001;
 /// let result = combinebits!(overflow=truncate, "00aaaaaa");
 /// assert_eq!(result,                          0b00100001);
+/// ```
+///
+/// ```
+/// use splitbits::combinebits;
 ///
 /// // overflow=corrupt is the most efficient option, but corrupts the bits that preceed the
 /// // field slot if an overflow occurs.
 /// let a: u8 = 0b11100001;
 /// let result = combinebits!(overflow=corrupt, "00aaaaaa");
 /// assert_eq!(result,                         0b11100001);
+/// ```
+///
+/// ```
+/// use splitbits::combinebits;
 ///
 /// // overflow=saturate sets all the bits of the field to 1s if an overflow occurs.
 /// let a: u8 = 0b11100001;
@@ -644,6 +657,20 @@ pub fn combinehex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// assert_eq!(output, 0b1111_0010);
 /// ```
 ///
+/// ```
+/// // Or the equivalent, with actual input variables, as it would occur in real code:
+/// use splitbits::splitbits_then_combine;
+///
+/// let primary = 0b1111_0000;
+/// let supplement = 0b1011_1111;
+/// let output = splitbits_then_combine!(
+///     primary,    "aaaa ..bb",
+///     supplement, "cc.. ....",
+///                 "aaaa bbcc",
+/// );
+/// assert_eq!(output, 0b1111_0010);
+/// ```
+///
 /// Literal 1s and 0s can be hard-coded into the output template:
 /// ```
 /// use splitbits::splitbits_then_combine;
@@ -703,11 +730,106 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
     split_then_combine_base(input, Base::Hexadecimal)
 }
 
+/// Replace the bits in an integer with bits from other variables, as specified by a template.
+///
+/// Limitation: Currently this macro doesn't take input variables as parameters, they must be
+/// captured from single-letter variables.
+/// ```
+/// use splitbits::replacebits;
+///
+/// let a: u16 = 0b101;
+/// let b: u8 = 0b00001;
+/// let c: u128 = 0b0101;
+/// let d = true;
+///
+/// let input = 0b1111_1111_0000_0000;
+/// let output = replacebits!(input, "aaab bbbb .d.. cccc");
+/// assert_eq!(output,              0b1010_0001_0100_0101);
+/// ```
+///
+/// Literals can be placed in the template to override specific bits:
+/// ```
+/// use splitbits::replacebits;
+///
+/// let a: u16 = 0b101;
+/// let b: u8 = 0b01;
+/// let result = replacebits!(0b10000001, "aaa11bb0");
+/// assert_eq!(result,                   0b10111010);
+/// ```
+///
+/// Input variables can be split across multiple template slots:
+/// ```
+/// use splitbits::replacebits;
+///
+/// let a: u16 = 0b101101;
+/// let b: u8 = 0b01;
+/// let result = replacebits!(0b1111_1111, "aaab baaa");
+/// assert_eq!(result,                    0b1010_1101);
+/// ```
+///
+/// If an input variable is too large for its slot, by default its top bits are truncated (but
+/// other options exist):
+/// ```
+/// use splitbits::replacebits;
+///
+/// let a: u8 = 0b11100001;
+/// let result = replacebits!(0b00110000, "00aaaaaa");
+/// assert_eq!(result,                   0b00100001);
+/// ```
+///
+/// ```
+/// use splitbits::replacebits;
+///
+/// // overflow=truncate is the default behavior, so the result is the same as above.
+/// let a: u8 = 0b11100001;
+/// let result = replacebits!(overflow=truncate, 0b00110000, "00aaaaaa");
+/// assert_eq!(result,                                      0b00100001);
+/// ```
+///
+/// ```
+/// use splitbits::replacebits;
+///
+/// // overflow=corrupt is the most efficient option, but corrupts the bits that preceed the
+/// // field slot if an overflow occurs.
+/// let a: u8 = 0b11100001;
+/// let result = replacebits!(overflow=corrupt, 0b00110000, "00aaaaaa");
+/// assert_eq!(result,                                     0b11100001);
+/// ```
+///
+/// ```
+/// use splitbits::replacebits;
+///
+/// // overflow=saturate sets all the bits of the field to 1s if an overflow occurs.
+/// let a: u8 = 0b11100001;
+/// let result = replacebits!(overflow=saturate, 0b00110000, "00aaaaaa");
+/// assert_eq!(result,                                      0b00111111);
+/// ```
+///
+/// ```should_panic
+/// use splitbits::replacebits;
+///
+/// // overflow=panic results in a panic if the input variable doesn't fit in its template slot.
+/// let a: u8 = 0b11100001;
+/// let _ = replacebits!(overflow=panic, 0b00110000, "00aaaaaa");
+/// ```
 #[proc_macro]
 pub fn replacebits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     replacebits_base(input, Base::Binary)
 }
 
+/// Same as [`replacebits!`], except the digits in the template are hexadecimal rather than binary.
+/// ```
+/// use splitbits::replacehex;
+///
+/// let w = 0xABC;
+/// let x = 0x01234;
+/// let y = 0x9876;
+/// let z: u8 = 5;
+///
+/// let input = 0x555_5555_5F55_5555;
+/// let output = replacehex!(input, "wwwx xxxx .z.. yyyy");
+/// assert_eq!(output,             0xABC0_1234_5555_9876);
+/// ```
 #[proc_macro]
 pub fn replacehex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     replacebits_base(input, Base::Hexadecimal)
