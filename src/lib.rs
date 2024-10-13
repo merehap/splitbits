@@ -568,18 +568,20 @@ pub fn splithex_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::Tok
 /// ```
 /// use splitbits::combinebits;
 ///
-/// let a: u8 = 0b11100001;
-/// let result = combinebits!("00aaaaaa");
-/// assert_eq!(result,       0b00100001);
+/// let a: u8 = 0b0110_0001;
+/// // Equivalent of: (a & bitmask) << 1
+/// let result = combinebits!("0aaaaaa0");
+/// assert_eq!(result,       0b01000010);
 /// ```
 ///
 /// ```
 /// use splitbits::combinebits;
 ///
 /// // overflow=truncate is the default behavior, so the result is the same as above.
-/// let a: u8 = 0b11100001;
-/// let result = combinebits!(overflow=truncate, "00aaaaaa");
-/// assert_eq!(result,                          0b00100001);
+/// let a: u8 = 0b01100001;
+/// // Equivalent of: (a & bitmask) << 1
+/// let result = combinebits!(overflow=truncate, "0aaaaaa0");
+/// assert_eq!(result,                          0b01000010);
 /// ```
 ///
 /// ```
@@ -587,26 +589,29 @@ pub fn splithex_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::Tok
 ///
 /// // overflow=corrupt is the most efficient option, but corrupts the bits that preceed the
 /// // field slot if an overflow occurs.
-/// let a: u8 = 0b11100001;
-/// let result = combinebits!(overflow=corrupt, "00aaaaaa");
-/// assert_eq!(result,                         0b11100001);
+/// let a: u8 = 0b01100001;
+/// // Equivalent of: a << 1
+/// let result = combinebits!(overflow=corrupt, "0aaaaaa0");
+/// assert_eq!(result,                         0b11000010);
 /// ```
 ///
 /// ```
 /// use splitbits::combinebits;
 ///
 /// // overflow=saturate sets all the bits of the field to 1s if an overflow occurs.
-/// let a: u8 = 0b11100001;
-/// let result = combinebits!(overflow=saturate, "00aaaaaa");
-/// assert_eq!(result,                          0b00111111);
+/// let a: u8 = 0b01100001;
+/// // Equivalent of: min(a << 1, mask)
+/// let result = combinebits!(overflow=saturate, "0aaaaaa0");
+/// assert_eq!(result,                          0b01111110);
 /// ```
 ///
 /// ```should_panic
 /// use splitbits::combinebits;
 ///
 /// // overflow=panic results in a panic if the input variable doesn't fit in its template slot.
-/// let a: u8 = 0b11100001;
-/// let _ = combinebits!(overflow=panic, "00aaaaaa");
+/// let a: u8 = 0b01100001;
+/// // Equivalent of: assert!((a << 1) <= mask)
+/// let _ = combinebits!(overflow=panic, "0aaaaaa0");
 /// ```
 #[proc_macro]
 pub fn combinebits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -772,18 +777,20 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
 /// ```
 /// use splitbits::replacebits;
 ///
-/// let a: u8 = 0b11100001;
-/// let result = replacebits!(0b00110000, "00aaaaaa");
-/// assert_eq!(result,                   0b00100001);
+/// let a: u8 = 0b01100001;
+/// // Equivalent of: (a & mask) << 1
+/// let result = replacebits!(0b00110000, "0aaaaaa0");
+/// assert_eq!(result,                   0b01000010);
 /// ```
 ///
 /// ```
 /// use splitbits::replacebits;
 ///
 /// // overflow=truncate is the default behavior, so the result is the same as above.
-/// let a: u8 = 0b11100001;
-/// let result = replacebits!(overflow=truncate, 0b00110000, "00aaaaaa");
-/// assert_eq!(result,                                      0b00100001);
+/// let a: u8 = 0b01100001;
+/// // Equivalent of: (a & mask) << 1
+/// let result = replacebits!(overflow=truncate, 0b00110000, "0aaaaaa0");
+/// assert_eq!(result,                                      0b01000010);
 /// ```
 ///
 /// ```
@@ -791,26 +798,29 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
 ///
 /// // overflow=corrupt is the most efficient option, but corrupts the bits that preceed the
 /// // field slot if an overflow occurs.
-/// let a: u8 = 0b11100001;
-/// let result = replacebits!(overflow=corrupt, 0b00110000, "00aaaaaa");
-/// assert_eq!(result,                                     0b11100001);
+/// let a: u8 = 0b01100001;
+/// // Equivalent of: a << 1
+/// let result = replacebits!(overflow=corrupt, 0b00110000, "0aaaaaa0");
+/// assert_eq!(result,                                     0b11000010);
 /// ```
 ///
 /// ```
 /// use splitbits::replacebits;
 ///
 /// // overflow=saturate sets all the bits of the field to 1s if an overflow occurs.
-/// let a: u8 = 0b11100001;
-/// let result = replacebits!(overflow=saturate, 0b00110000, "00aaaaaa");
-/// assert_eq!(result,                                      0b00111111);
+/// let a: u8 = 0b01100001;
+/// // Equivalent of: min(a << 1, mask)
+/// let result = replacebits!(overflow=saturate, 0b00110000, "0aaaaaa0");
+/// assert_eq!(result,                                      0b01111110);
 /// ```
 ///
 /// ```should_panic
 /// use splitbits::replacebits;
 ///
 /// // overflow=panic results in a panic if the input variable doesn't fit in its template slot.
-/// let a: u8 = 0b11100001;
-/// let _ = replacebits!(overflow=panic, 0b00110000, "00aaaaaa");
+/// let a: u8 = 0b01100001;
+/// // Equivalent of: assert!((a << 1) <= mask))
+/// let _ = replacebits!(overflow=panic, 0b01100010, "0aaaaaa0");
 /// ```
 #[proc_macro]
 pub fn replacebits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
