@@ -1,3 +1,96 @@
+//! [![github]](https://github.com/merehap/splitbits)
+//!
+//! [github]: https://img.shields.io/badge/github-8da0cb?style=for-the-badge&labelColor=555555&logo=github
+//!
+//! Splitbits provides concise macros for extracting bits from integers and combining bits into
+//! integers.
+//! ```
+//! use splitbits::splitbits;
+//!
+//! // Parse the template provided ("aaabbbbb"), apply it to the input, then generate a struct
+//! // populated with the bit field values.
+//! let fields = splitbits!(0b11110000, "aaabbbbb");
+//! // Single-letter field names, generated from the unique letters in the template above.
+//! assert_eq!(fields.a, 0b111);
+//! assert_eq!(fields.b, 0b10000);
+//! ```
+//!
+//! # Why use splitbits?
+//! Splitbits allows you to skip tedious, error-prone bit operations, instead providing a
+//! simple, terse, and readable template format for specifying what bits should go into what fields.
+//!
+//! Splitbits is intended for cases where [bitfield] is too heavy-weight: when you don't want to
+//! explicitly declare a new struct for data that you won't use as a return value or argument.
+//!
+//! [bitfield]: https://docs.rs/bitfield/latest/bitfield/
+//!
+//! # The four base macros
+//! For additional examples, see each macro's page.
+//! - [`splitbits!`] - Extract bit fields out of an integer, storing them as fields of a struct.
+//! (See example above.)
+//! - [`combinebits!`] - Combine bits of multiple integers into a single integer.
+//!   ```
+//!   use splitbits::combinebits;
+//!
+//!   let b: u8 = 0b1010_1010;
+//!   let m: u8 = 0b1111;
+//!   let e: u8 = 0b0000;
+//!   let result = combinebits!("bbbb bbbb mmmm eeee");
+//!   assert_eq!(result,       0b1010_1010_1111_0000);
+//!   ```
+//! - [`splitbits_then_combine!`] - Extract bit fields from multiple integers then combine them
+//! into a single integer.
+//!   ```
+//!   use splitbits::splitbits_then_combine;
+//!
+//!   let output = splitbits_then_combine!(
+//!       0b1111_0000, "aaaa ..bb", // input 0, input template 0,
+//!       0b1011_1111, "cc.. ....", // input 1, input template 1
+//!                    "aaaa bbcc", // output template
+//!   );
+//!   assert_eq!(output, 0b1111_0010);
+//!   ```
+//! - [`replacebits!`] - Replace some of the bits of an integer with bits from other integers.
+//!   ```
+//!   use splitbits::replacebits;
+//!
+//!   let a: u16 = 0b101;
+//!   let b: u8 = 0b01;
+//!   // Placeholder periods in the template are the bits that will not be replaced.
+//!   let result = replacebits!(0b10000001, "aaa..bb.");
+//!   assert_eq!(result,                   0b10100011);
+//!   ```
+//!
+//! # Macro variants
+//! The four base macros cover all the basic functionality that this crate offers and should be
+//! sufficient for most use-cases. However, in many situations better ergonomics can be achieved by
+//! using the macro variants.
+//! #### Hexadecimal
+//! All four base macros have equivalents that use hexadecimal digits for their templates rather
+//! than bits (binary digits). These variants are:
+//! - [`splithex!`]
+//! - [`combinehex!`]
+//! - [`splithex_then_combine!`]
+//! - [`replacehex!`]
+//!
+//! #### Splitbits variants
+//! [`splitbits!`] itself has many variants which are intended for better ergonomics for the generated
+//! variables. The basic variants are:
+//! - [`splitbits_named!`] - Used when single-letter variable names aren't descriptive enough. This
+//! variant returns a tuple (instead of a struct) of the resulting fields, allowing the caller to
+//! assign individual long field names in the `let` binding.
+//! - [`splitbits_named_into!`] - Same as [`splitbits_named!`] except that the caller specifies the
+//! types of the resulting fields, not just their names. `into()` is called on each tuple field
+//! before it reaches the caller. This is useful for when the default type (the smallest integer
+//! type that will fit the field) is a smaller type than the caller would like to use, or if the
+//! caller has a newtype that they would like to use instead.
+//! - [`splitbits_ux!`] - Used when exact-width integers (e.g. u4, u7, u20) are needed, instead of
+//! just the standard types (u8, u16, u32, u64, u128, and bool). Requires the [ux] crate.
+//!
+//! [ux]: <https://docs.rs/ux/latest/ux/>
+//! # Template syntax
+//! # Settings
+
 #![forbid(unsafe_code)]
 #![feature(let_chains)]
 
@@ -25,6 +118,7 @@ use crate::template::Template;
 use crate::r#type::{Type, Precision};
 
 // TODO:
+// * Remove itertools dependency.
 // * Better error message if a setting is provided to replacebits! but an input isn't.
 // * Fix combinebits! from failing when the template width is less than an input width.
 // * Detailed top-level comments.
@@ -503,18 +597,18 @@ pub fn splithex_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::Tok
     splitbits_named_into_base(input, Base::Hexadecimal, Precision::Ux)
 }
 
-/// Combine the bits of multiple variables into a single variable as defined by a template.
+/// Combine bits of multiple variables into a single variable as defined by a template.
 ///
 /// By default, input values that are too large for their slot in the template will have their
 /// front bits truncated until they fit. See later examples for how to override this behavior.
 /// ```
 /// use splitbits::combinebits;
 ///
-/// let s: u8 = 0b1010_0101;
+/// let b: u8 = 0b1010_1010;
 /// let m: u8 = 0b1111;
 /// let e: u8 = 0b0000;
-/// let result = combinebits!("ssss ssss mmmm eeee");
-/// assert_eq!(result,       0b1010_0101_1111_0000);
+/// let result = combinebits!("bbbb bbbb mmmm eeee");
+/// assert_eq!(result,       0b1010_1010_1111_0000);
 /// ```
 ///
 /// If descriptive variable names are desired, then variables can be passed in as arguments.
@@ -523,11 +617,11 @@ pub fn splithex_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::Tok
 /// ```
 /// use splitbits::combinebits;
 ///
-/// let start: u8 = 0b1010_0101;
+/// let beginning: u8 = 0b1010_1010;
 /// let middle: u8 = 0b1111;
 /// let end: u16 = 0b0000;
-/// let result = combinebits!(start, middle, end, "ssss ssss mmmm eeee");
-/// assert_eq!(result,                           0b1010_0101_1111_0000);
+/// let result = combinebits!(beginning, middle, end, "bbbb bbbb mmmm eeee");
+/// assert_eq!(result,                           0b1010_1010_1111_0000);
 /// ```
 ///
 /// An input variable can be split into multiple segments by the template:
@@ -625,10 +719,10 @@ pub fn combinebits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// ```
 /// use splitbits::combinehex;
 ///
-/// let s: u32 = 0x89ABCDEF;
+/// let b: u32 = 0x89ABCDEF;
 /// let m: u8 = 0x11;
 /// let e: u16 = 0x2345;
-/// let result = combinehex!("ssss ssss mmAF eeee");
+/// let result = combinehex!("bbbb bbbb mmAF eeee");
 /// assert_eq!(result,      0x89AB_CDEF_11AF_2345);
 /// ```
 #[proc_macro]

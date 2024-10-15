@@ -1,2 +1,2 @@
 # splitbits
-Exceptionally light-weight bit-field extraction
+Light-weight and terse bit field extraction
