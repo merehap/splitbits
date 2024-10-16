@@ -17,10 +17,12 @@
 //!
 //! # Why use splitbits?
 //! Splitbits allows you to skip tedious, error-prone bit operations, instead providing a
-//! simple, terse, and readable template format for specifying what bits should go into what fields.
+//! simple, terse, and readable template format for specifying which bits correspond to which
+//! fields.
 //!
 //! Splitbits is intended for cases where [bitfield] is too heavy-weight: when you don't want to
 //! explicitly declare a new struct for data that you won't use as a return value or argument.
+//! Splitbits also provides some features that are arguably out of scope for [bitfield].
 //!
 //! [bitfield]: https://docs.rs/bitfield/latest/bitfield/
 //!
@@ -67,11 +69,8 @@
 //! using the macro variants.
 //! #### Hexadecimal
 //! All four base macros have equivalents that use hexadecimal digits for their templates rather
-//! than bits (binary digits). These variants are:
-//! - [`splithex!`]
-//! - [`combinehex!`]
-//! - [`splithex_then_combine!`]
-//! - [`replacehex!`]
+//! than bits (binary digits). The variants are [`splithex!`], [`combinehex!`],
+//! [`splithex_then_combine!`], and [`replacehex!`].
 //!
 //! #### Splitbits variants
 //! [`splitbits!`] itself has many variants which are intended for better ergonomics for the generated
@@ -89,7 +88,42 @@
 //!
 //! [ux]: <https://docs.rs/ux/latest/ux/>
 //! # Template syntax
+//! Templates are a string of characters that represent the names and bit-placements of fields
+//! within an integer.
+//!
+//! Example: `"..aa bccc dddd 1010"`
+//!
+//! The possible elements of a template are:
+//! - Names - a single letter that indicates the name of a field. (Currently only ASCII allowed.)
+//! - Placeholders - a period that indicates a digit that will be ignored.
+//! - Literals - a literal digit of the numeric base of the template (e.g. binary or hexadecimal).
+//! - Whitespaces - an empty space character used to make formatting more human-friendly,
+//! paralleling how underscores can be added to integer literals.
+//!
+//! The bits of a field are usually contiguous within a template, but they don't have to be:
+//! `"aabbbbaa"`. This template will interpret `a` as a single field, with no bits present between
+//! the halves.
+//!
+//! #### Restrictions
+//! - Templates (currently) must have a standard integer width (8, 16, 32, 64, or 128 bits).
+//! - Placeholders cannot be used in the template for [`combinebits!`], nor in the output template
+//! of [`splitbits_then_combine!`]. They are not meaningful in those contexts.
+//! - Literals (currently) cannot be used in the template for [`splitbits!`] nor the input templates
+//! of [`splitbits_then_combine!`]. In the future, literals could be used in these contexts for
+//! input validation.
+//!
 //! # Settings
+//! There are currently two settings that can be passed to change the behavior of the various
+//! macros:
+//! - **min** - sets the minimum size of variable that can be produced by the [`splitbits!`] family of
+//! macros. Must be set if you don't want booleans generated for 1-bit fields.
+//!   - For standard (non-ux) macros, the valid setting values are `bool` (the default), `u8`, `u16`, `u32`,
+//! `u64`, and `u128`. See examples at [`splitbits!`].
+//!   - For ux macros, the valid setting values are `bool` (the default) or `uX`, where X is
+//!   between 1 and 128. See examples at [`splitbits_ux!`].
+//! - **overflow** - sets the behavior to use if the value of an input variable is larger than the
+//! corresponding slot in the template. Used in [`combinebits!`] and [`replacebits!`]. Valid
+//! setting values are `truncate` (the default), `panic`, `corrupt`, or `saturate`.
 
 #![forbid(unsafe_code)]
 #![feature(let_chains)]
@@ -1025,7 +1059,15 @@ fn combinebits_base(
             .expect("Valid overflow setting value must be passed");
     }
 
-    let template = Template::from_expr(&parts.pop().unwrap(), base, Precision::Ux);
+    let expr = parts.pop().unwrap();
+    let template = Template::from_expr(&expr, base, Precision::Ux);
+    if template.has_placeholders() {
+        let bad_template = Template::template_string(&expr);
+        panic!(
+            "Template ({bad_template}) must not have placeholders (periods) in it. \
+            Use literals instead as appropriate.");
+    }
+
     if parts.is_empty() {
         // No arguments passed, so take them from the variables preceeding the macro instead.
         template.combine_with_context(on_overflow).into()
