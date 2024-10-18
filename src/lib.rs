@@ -152,10 +152,8 @@ use crate::template::Template;
 use crate::r#type::{Type, Precision};
 
 // TODO:
-// * Remove itertools dependency.
 // * Better error message if a setting is provided to replacebits! but an input isn't.
 // * Fix combinebits! from failing when the template width is less than an input width.
-// * Detailed top-level comments.
 // * Put compile checks behind different target so compiler updates don't break building.
 // * Split tests into multiple files.
 // * Add missing variable test for splitbits.

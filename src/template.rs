@@ -37,16 +37,17 @@ impl Template {
         reject_higher_base_chars(&template_string, base);
         let characters = Characters::from_str(&template_string, base);
 
+        let name_offsets: VecDeque<(u8, Option<Name>)> = characters.iter()
+            .rev()
+            .enumerate()
+            .map(|(offset, character)| (u8::try_from(offset).unwrap(), character.to_name()))
+            .collect();
+
         let width = Type::for_template(characters.width())
             .expect("Template must have a valid width");
         let mut locations_by_name: Vec<(Name, Vec<Location>)> = Vec::new();
         for name in characters.to_names() {
-            let mut name_offsets: VecDeque<(u8, Option<Name>)> = characters.iter()
-                .rev()
-                .enumerate()
-                .map(|(offset, character)| (u8::try_from(offset).unwrap(), character.to_name()))
-                .collect();
-
+            let mut name_offsets = name_offsets.clone();
             let mut locations = Vec::new();
             while let Some(&(mask_offset, _)) = name_offsets.front() {
                 let mut width = 0;
