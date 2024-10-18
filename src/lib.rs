@@ -401,7 +401,7 @@ pub fn splithex_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// Same as [`splitbits!`], except that full-length variable names can be used. Returns a tuple
 /// instead of a generated struct. If there is only a single field specified in the template,
 /// returns a single variable instead (not a 1-tuple). Fields are returned in the order that they
-/// appear in the template, and the single character template names are discarded.
+/// first appear in the template, and the single character template names are discarded.
 /// ```
 /// use splitbits::splitbits_named;
 ///
@@ -417,7 +417,7 @@ pub fn splithex_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// let mut apple_count = 5;
 /// let banana_count;
 ///
-/// /* Various operations on apple_count and banana_count omitted here. */
+/// /* Various operations on apple_count omitted here. */
 ///
 /// // Overwrite the existing values of apple_count and banana_count.
 /// (apple_count, banana_count) = splitbits_named!(0b11110000, "aaabbbbb");
@@ -425,7 +425,7 @@ pub fn splithex_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// assert_eq!(banana_count, 0b10000);
 /// ```
 ///
-/// Just as with `[splitbits!]`, the template can have spaces for readability, period placeholders
+/// Just as with [`splitbits!`], the template can have spaces for readability, period placeholders
 /// for ignoring certain bits, and fields broken up into multiple segments:
 /// ```
 /// use splitbits::splitbits_named;
@@ -494,7 +494,7 @@ pub fn splithex_named_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStr
 }
 
 /// Same as [`splitbits_named!`], except the caller can provide the field types, rather than the
-/// macro inferring them. The custom types must implement From/Into for the relevant integer types.
+/// macro inferring them. The custom types must implement From for the relevant integer types.
 /// ```
 /// use splitbits::splitbits_named_into;
 ///
