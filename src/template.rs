@@ -1,12 +1,11 @@
-use std::collections::{BTreeSet, BTreeMap};
+use std::collections::{BTreeSet, BTreeMap, VecDeque};
 
-use itertools::Itertools;
 use proc_macro2::{TokenStream, Ident};
 use quote::{quote, format_ident, ToTokens};
 use syn::{Expr, Lit};
 
 use crate::base::Base;
-use crate::character::{Character, Characters};
+use crate::character::Characters;
 use crate::field::Field;
 use crate::location::Location;
 use crate::name::Name;
@@ -42,24 +41,24 @@ impl Template {
             .expect("Template must have a valid width");
         let mut locations_by_name: Vec<(Name, Vec<Location>)> = Vec::new();
         for name in characters.to_names() {
-            let locations: Vec<Location> = characters.iter()
+            let mut name_offsets: VecDeque<(u8, Option<Name>)> = characters.iter()
                 .rev()
                 .enumerate()
-                .chunk_by(|(_, &n)| n)
-                .into_iter()
-                .filter_map(|(c, segment)| {
-                    if c == Character::Name(name) {
-                        let segment: Vec<_> = segment.collect();
-                        let width = segment.len().try_into()
-                            .expect("Segment should be under 256 characters");
-                        let mask_offset = segment[0].0.try_into()
-                            .expect("Segment offset should be under 256 characters");
-                        Some(Location { width, mask_offset })
-                    } else {
-                        None
-                    }
-                })
+                .map(|(offset, character)| (u8::try_from(offset).unwrap(), character.to_name()))
                 .collect();
+
+            let mut locations = Vec::new();
+            while let Some(&(mask_offset, _)) = name_offsets.front() {
+                let mut width = 0;
+                while name_offsets.pop_front().map(|(_, n)| n) == Some(Some(name)) {
+                    width += 1;
+                }
+
+                if width > 0 {
+                    locations.push(Location { width, mask_offset });
+                }
+            }
+
             locations_by_name.push((name, locations));
         }
 

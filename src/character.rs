@@ -1,6 +1,5 @@
+use std::collections::BTreeSet;
 use std::fmt;
-
-use itertools::Itertools;
 
 use crate::Base;
 use crate::name::Name;
@@ -126,10 +125,16 @@ impl Characters {
 
     // Extract all the unique names that are present in the Characters.
     pub fn to_names(&self) -> Vec<Name> {
-        self.0.iter()
-            .filter_map(|c| c.to_name())
-            .unique()
-            .collect()
+        let mut uniques = BTreeSet::new();
+
+        let mut names = Vec::new();
+        for character in self.0.iter() {
+            if let Some(name) = character.to_name() && uniques.insert(name) {
+                names.push(name);
+            }
+        }
+
+        names
     }
 
     // The count of Characters.
