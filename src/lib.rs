@@ -152,7 +152,6 @@ use crate::template::Template;
 use crate::r#type::{Type, Precision};
 
 // TODO:
-// * Better error message if a setting is provided to replacebits! but an input isn't.
 // * Fix combinebits! from failing when the template width is less than an input width.
 // * Put compile checks behind different target so compiler updates don't break building.
 // * Add missing variable test for splitbits.
@@ -1127,6 +1126,12 @@ fn replacebits_base(
             .unwrap_or_else(|err_string| panic!("Invalid type for setting 'overflow'. {err_string}"));
 
         parts.remove(0);
+    }
+
+    for part in &parts {
+        if parse_assignment(part).is_some() {
+            panic!("Either an input or template was missing, but found a setting instead.");
+        }
     }
 
     let value = parts[0].clone();

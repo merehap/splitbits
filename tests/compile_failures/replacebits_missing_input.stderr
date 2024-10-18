@@ -1,0 +1,7 @@
+error: proc macro panicked
+ --> tests/compile_failures/replacebits_missing_input.rs:8:5
+  |
+8 |     replacebits!(overflow=truncate, "aaab bbbb .d.. cccc")
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: Either an input or template was missing, but found a setting instead.
