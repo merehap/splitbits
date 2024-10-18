@@ -155,7 +155,6 @@ use crate::r#type::{Type, Precision};
 // * Better error message if a setting is provided to replacebits! but an input isn't.
 // * Fix combinebits! from failing when the template width is less than an input width.
 // * Put compile checks behind different target so compiler updates don't break building.
-// * Split tests into multiple files.
 // * Add missing variable test for splitbits.
 // * Add wrong number of args test for splitbits.
 // * Incorrect template size test.
@@ -264,6 +263,9 @@ use crate::r#type::{Type, Precision};
 /// assert_eq!(coordinates.x, 0b1111);
 /// assert_eq!(coordinates.y, 0b0000);
 /// ```
+///
+/// [`splitbits!`] generates unique, undocumented, struct names. Changes to the struct name format
+/// will not be considered breaking changes, so don't rely on the format staying the same!
 #[proc_macro]
 pub fn splitbits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     splitbits_base(input, Base::Binary, Precision::Standard)
