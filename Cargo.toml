@@ -10,6 +10,7 @@ repository = "https://github.com/merehap/splitbits.git"
 description = "Concise bit field extraction"
 keywords = ["bitfields", "bits", "splitbits"]
 categories = ["rust-patterns", "parser-implementations"]
+exclude = ["static/*"]
 
 [lib]
 proc-macro = true
