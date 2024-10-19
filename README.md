@@ -1,4 +1,10 @@
 # Concise bit field extraction
+[![Doc Status]][docs] [![Latest Version]][crates.io]
+
+[doc status]: https://img.shields.io/docsrs/splitbits?style=plastic
+[docs]: https://docs.rs/splitbits/
+[latest version]: https://img.shields.io/crates/v/splitbits?style=plastic
+[crates.io]: https://crates.io/crates/splitbits
 
 Splitbits provides concise macros for extracting bits from integers and combining bits into
 integers.
