@@ -35,9 +35,9 @@ Splitbits also provides some features that are arguably out of scope for bitfiel
 
 # The four base macros
 For additional examples, see each macro's page.
-- [`splitbits!`] - Extract bit fields out of an integer, storing them as fields of a struct.
+- [splitbits!] - Extract bit fields out of an integer, storing them as fields of a struct.
 (See example above.)
-- [`combinebits!`] - Combine bits of multiple integers into a single integer.
+- [combinebits!] - Combine bits of multiple integers into a single integer.
   ```rust
   use splitbits::combinebits;
 
@@ -47,7 +47,7 @@ For additional examples, see each macro's page.
   let result = combinebits!("bbbb bbbb mmmm eeee");
   assert_eq!(result,       0b1010_1010_1111_0000);
   ```
-- [`splitbits_then_combine!`] - Extract bit fields from multiple integers then combine them
+- [splitbits_then_combine!] - Extract bit fields from multiple integers then combine them
 into a single integer.
   ```rust
   use splitbits::splitbits_then_combine;
@@ -59,7 +59,7 @@ into a single integer.
   );
   assert_eq!(output, 0b1111_0010);
   ```
-- [`replacebits!`] - Replace some of the bits of an integer with bits from other integers.
+- [replacebits!] - Replace some of the bits of an integer with bits from other integers.
   ```rust
   use splitbits::replacebits;
 
@@ -76,27 +76,27 @@ sufficient for most use-cases. However, in many situations better ergonomics can
 using the macro variants.
 #### Hexadecimal
 All four base macros have equivalents that use hexadecimal digits for their templates rather
-than bits (binary digits). The variants are [`splithex!`], [`combinehex!`],
-[`splithex_then_combine!`], and [`replacehex!`].
+than bits (binary digits). The variants are [splithex!], [combinehex!],
+[splithex_then_combine!], and [replacehex!].
 
 #### Splitbits variants
-[`splitbits!`] itself has many variants which are intended for better ergonomics for the generated
+[splitbits!] itself has many variants which are intended for better ergonomics for the generated
 variables. The basic variants are:
-- [`splitbits_named!`] - Used when single-letter variable names aren't descriptive enough. This
+- [splitbits_named!] - Used when single-letter variable names aren't descriptive enough. This
 variant returns a tuple (instead of a struct) of the resulting fields, allowing the caller to
 assign individual long field names in the `let` binding.
-- [`splitbits_named_into!`] - Same as [`splitbits_named!`] except that the caller specifies the
+- [splitbits_named_into!] - Same as [splitbits_named!] except that the caller specifies the
 types of the resulting fields, not just their names. `into()` is called on each tuple field
 before it reaches the caller. This is useful for when the default type (the smallest integer
 type that will fit the field) is a smaller type than the caller would like to use, or if the
 caller has a newtype that they would like to use instead.
-- [`splitbits_ux!`] - Used when exact-width integers (e.g. u4, u7, u20) are needed, instead of
+- [splitbits_ux!] - Used when exact-width integers (e.g. u4, u7, u20) are needed, instead of
 just the standard types (u8, u16, u32, u64, u128, and bool). Requires the [ux] crate.
 
 [ux]: <https://docs.rs/ux/latest/ux/>
 
 # Documentation
-Find thorough documentation of this crate and its many macro variants [here].
+Find thorough documentation of this crate and its many macro variants [here], including detailed template syntax, settings, and per-macro documentation and examples.
 
 [here]: <https://docs.rs/splitbits>
 
@@ -106,7 +106,7 @@ Find thorough documentation of this crate and its many macro variants [here].
 - Add setting for validating splitbits inputs by specifying literals in the template.
 - Add file-level config for setting defaults for the overflow and min settings.
   - Will allow macro invocations to be more concise at the call-site when the default settings are not desired for a project.
-- Allow non-standard template lengths
+- Allow non-standard template lengths.
 
 ### Code quality
 - Represent output as a syntax tree before final code generation.
@@ -117,3 +117,15 @@ Find thorough documentation of this crate and its many macro variants [here].
   - Will fix bug where combinebits input types must not be larger than the template type.
 - Extract argument parsing from business logic.
   - Will improve code clarity and error handling.
+
+[splitbits!]: <https://docs.rs/splitbits/latest/splitbits/macro.splitbits.html>
+[combinebits!]: <https://docs.rs/splitbits/latest/splitbits/macro.combinebits.html>
+[splitbits_then_combine!]: <https://docs.rs/splitbits/latest/splitbits/macro.splitbits_then_combine.html>
+[replacebits!]: <https://docs.rs/splitbits/latest/splitbits/macro.replacebits.html>
+[splitbits_named!]: <https://docs.rs/splitbits/latest/splitbits/macro.splitbits_named.html>
+[splitbits_named_into!]: <https://docs.rs/splitbits/latest/splitbits/macro.splitbits_named_into.html>
+[splitbits_ux!]: <https://docs.rs/splitbits/latest/splitbits/macro.splitbits_ux.html>
+[splithex!]: <https://docs.rs/splitbits/latest/splitbits/macro.splithex.html>
+[combinehex!]: <https://docs.rs/splitbits/latest/splitbits/macro.combinehex.html>
+[splithex_then_combine!]: <https://docs.rs/splitbits/latest/splitbits/macro.splithex_then_combine.html>
+[replacehex!]: <https://docs.rs/splitbits/latest/splitbits/macro.replacehex.html>
