@@ -160,6 +160,9 @@ use crate::r#type::{Type, Precision};
 // After 0.1.0:
 // * Create abstract syntax trees instead of quoting prematurely.
 // ** Add comments that show example macro expansion fragments.
+// ** Add optimization passes for performance and clarity.
+// ** Fix bug where inputs to combinebits can't have a larger type than the template without
+// truncation occurring.
 // * Extract argument parsing.
 // * Ensure overflow behavior usability in const contexts.
 // * Add base 8, base 32, and base 64.

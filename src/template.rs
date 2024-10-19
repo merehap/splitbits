@@ -131,6 +131,9 @@ impl Template {
                     quote! { >> #segment_offset }
                 };
 
+                // TODO: Removing this mask may be a breaking change. Figure out why
+                // the test split_then_combine_into_fragments fails when the mask is removed for
+                // it, then add a similar test for replacebits.
                 let mask = if i == locations.len() - 1 {
                     quote! {}
                 } else {
