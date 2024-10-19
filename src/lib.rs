@@ -46,7 +46,7 @@
 //! # The four base macros
 //! For additional examples, see each macro's page.
 //! - [`splitbits!`] - Extract bit fields out of an integer, storing them as fields of a struct.
-//! (See example above.)
+//!   (See example above.)
 //! - [`combinebits!`] - Combine bits of multiple integers into a single integer.
 //!   ```
 //!   use splitbits::combinebits;
@@ -58,7 +58,7 @@
 //!   assert_eq!(result,       0b1010_1010_1111_0000);
 //!   ```
 //! - [`splitbits_then_combine!`] - Extract bit fields from multiple integers then combine them
-//! into a single integer.
+//!   into a single integer.
 //!   ```
 //!   use splitbits::splitbits_then_combine;
 //!
@@ -93,15 +93,15 @@
 //! [`splitbits!`] itself has many variants which are intended for better ergonomics for the generated
 //! variables. The basic variants are:
 //! - [`splitbits_named!`] - Used when single-letter variable names aren't descriptive enough. This
-//! variant returns a tuple (instead of a struct) of the resulting fields, allowing the caller to
-//! assign individual long field names in the `let` binding.
+//!   variant returns a tuple (instead of a struct) of the resulting fields, allowing the caller to
+//!   assign individual long field names in the `let` binding.
 //! - [`splitbits_named_into!`] - Same as [`splitbits_named!`] except that the caller specifies the
-//! types of the resulting fields, not just their names. `into()` is called on each tuple field
-//! before it reaches the caller. This is useful for when the default type (the smallest integer
-//! type that will fit the field) is a smaller type than the caller would like to use, or if the
-//! caller has a newtype that they would like to use instead.
+//!   types of the resulting fields, not just their names. `into()` is called on each tuple field
+//!   before it reaches the caller. This is useful for when the default type (the smallest integer
+//!   type that will fit the field) is a smaller type than the caller would like to use, or if the
+//!   caller has a newtype that they would like to use instead.
 //! - [`splitbits_ux!`] - Used when exact-width integers (e.g. u4, u7, u20) are needed, instead of
-//! just the standard types (u8, u16, u32, u64, u128, and bool). Requires the [ux] crate.
+//!   just the standard types (u8, u16, u32, u64, u128, and bool). Requires the [ux] crate.
 //!
 //! [ux]: <https://docs.rs/ux/latest/ux/>
 //! # Template syntax
@@ -115,7 +115,7 @@
 //! - Placeholders - a period that indicates a digit that will be ignored.
 //! - Literals - a literal digit of the numeric base of the template (e.g. binary or hexadecimal).
 //! - Whitespaces - an empty space character used to make formatting more human-friendly,
-//! paralleling how underscores can be added to integer literals.
+//!   paralleling how underscores can be added to integer literals.
 //!
 //! The bits of a field are usually contiguous within a template, but they don't have to be:
 //! `"aabbbbaa"`. This template will interpret `a` as a single field, with no bits present between
@@ -124,23 +124,23 @@
 //! #### Restrictions
 //! - Templates (currently) must have a standard integer width (8, 16, 32, 64, or 128 bits).
 //! - Placeholders cannot be used in the template for [`combinebits!`], nor in the output template
-//! of [`splitbits_then_combine!`]. They are not meaningful in those contexts.
+//!   of [`splitbits_then_combine!`]. They are not meaningful in those contexts.
 //! - Literals (currently) cannot be used in the template for [`splitbits!`] nor the input templates
-//! of [`splitbits_then_combine!`]. In the future, literals could be used in these contexts for
-//! input validation.
+//!   of [`splitbits_then_combine!`]. In the future, literals could be used in these contexts for
+//!   input validation.
 //!
 //! # Settings
 //! There are currently two settings that can be passed to change the behavior of the various
 //! macros:
 //! - **min** - sets the minimum size of variable that can be produced by the [`splitbits!`] family of
-//! macros. Must be set if you don't want booleans generated for 1-bit fields.
+//!   macros. Must be set if you don't want booleans generated for 1-bit fields.
 //!   - For standard (non-ux) macros, the valid setting values are `bool` (the default), `u8`, `u16`, `u32`,
-//! `u64`, and `u128`. See examples at [`splitbits!`].
+//!     `u64`, and `u128`. See examples at [`splitbits!`].
 //!   - For ux macros, the valid setting values are `bool` (the default) or `uX`, where X is
-//!   between 1 and 128 (both inclusive). See examples at [`splitbits_ux!`].
+//!     between 1 and 128 (both inclusive). See examples at [`splitbits_ux!`].
 //! - **overflow** - sets the behavior to use if the value of an input variable is larger than the
-//! corresponding slot in the template. Used in [`combinebits!`] and [`replacebits!`]. Valid
-//! setting values are `truncate` (the default), `panic`, `corrupt`, or `saturate`.
+//!   corresponding slot in the template. Used in [`combinebits!`] and [`replacebits!`]. Valid
+//!   setting values are `truncate` (the default), `panic`, `corrupt`, or `saturate`.
 
 #![forbid(unsafe_code)]
 #![feature(let_chains)]

@@ -79,7 +79,7 @@ impl Template {
         let mut field_streams = Vec::new();
         for (name, locations) in &self.locations_by_name {
             let mut streams = self.create_field_streams(
-                *name, Box::new(name.to_ident()), &locations, on_overflow);
+                *name, Box::new(name.to_ident()), locations, on_overflow);
             field_streams.append(&mut streams);
         }
 
@@ -104,7 +104,7 @@ impl Template {
         let mut field_streams = Vec::new();
         for ((name, locations), expr) in self.locations_by_name.iter().zip(exprs.iter()) {
             let mut streams = self.create_field_streams(
-                *name, Box::new(expr.clone()), &locations, on_overflow);
+                *name, Box::new(expr.clone()), locations, on_overflow);
             field_streams.append(&mut streams);
         }
 
