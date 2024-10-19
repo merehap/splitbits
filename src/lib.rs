@@ -143,7 +143,6 @@
 //!   setting values are `truncate` (the default), `panic`, `corrupt`, or `saturate`.
 
 #![forbid(unsafe_code)]
-#![feature(let_chains)]
 
 extern crate proc_macro;
 
@@ -1046,13 +1045,14 @@ fn combinebits_base(
 
     let mut on_overflow = OnOverflow::Truncate;
     // If we've got more than one argument, the first one might be an overflow setting.
-    if let [assignment, _, ..] = &parts[..] &&
-       let Some((setting, value)) = parse_assignment(assignment) {
-        assert_eq!(setting, "overflow",
-            "Only the 'overflow' setting is supported, but found '{setting}'.");
-        parts.remove(0);
-        on_overflow = OnOverflow::parse(&value)
-            .expect("Valid overflow setting value must be passed");
+    if let [assignment, _, ..] = &parts[..] {
+        if let Some((setting, value)) = parse_assignment(assignment) {
+            assert_eq!(setting, "overflow",
+                "Only the 'overflow' setting is supported, but found '{setting}'.");
+            parts.remove(0);
+            on_overflow = OnOverflow::parse(&value)
+                .expect("Valid overflow setting value must be passed");
+        }
     }
 
     let expr = parts.pop().unwrap();

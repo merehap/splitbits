@@ -48,8 +48,8 @@ impl Field {
             .sum();
         let mut bit_width = Type::for_field(bit_width, precision)
             .expect("Field should be shorter than 256 characters");
-        if let Some(min_size) = min_size && min_size > bit_width {
-            bit_width = min_size;
+        if let Some(min_size) = min_size {
+            bit_width = std::cmp::max(bit_width, min_size);
         }
 
         Self { name, segments, bit_width }
