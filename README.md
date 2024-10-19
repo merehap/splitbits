@@ -9,8 +9,8 @@
 <img width="100%" alt="splitbits"
   src="https://github.com/merehap/splitbits/blob/master/static/splitbits.jpg">
 
-Splitbits provides concise macros for extracting bits from integers and combining bits into
-integers.
+Concise macros for extracting bits from integers and combining bits into integers. No scary syntax.
+Minimal magic.
 ```rust
 use splitbits::splitbits;
 

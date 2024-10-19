@@ -2,6 +2,13 @@
 name = "splitbits"
 version = "0.1.0"
 edition = "2021"
+license = "BSD-3-Clause"
+authors = ["Sean Erle Johnson"]
+readme = "README.md"
+documentation = "https://docs.rs/splitbits"
+repository = "https://github.com/merehap/splitbits.git"
+description = "Concise bit field extraction"
+keywords = ["bitfields", "bits", "splitbits"]
 
 [lib]
 proc-macro = true
