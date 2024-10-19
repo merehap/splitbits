@@ -152,17 +152,14 @@ use crate::template::Template;
 use crate::r#type::{Type, Precision};
 
 // TODO:
-// * Fix combinebits! from failing when the template width is less than an input width.
 // * Put compile checks behind different target so compiler updates don't break building.
-// * Add missing variable test for splitbits.
-// * Add wrong number of args test for splitbits.
 // * Incorrect template size test.
+// * Move macro bases to their own files.
 // After 0.1.0:
 // * Create abstract syntax trees instead of quoting prematurely.
 // ** Add comments that show example macro expansion fragments.
 // ** Add optimization passes for performance and clarity.
-// ** Fix bug where inputs to combinebits can't have a larger type than the template without
-// truncation occurring.
+// ** Fix combinebits! from failing when the template width is less than an input width.
 // * Extract argument parsing.
 // * Ensure overflow behavior usability in const contexts.
 // * Add base 8, base 32, and base 64.
@@ -1175,6 +1172,12 @@ fn parse_splitbits_input(
     for c in template_string.chars() {
         assert!(!c.is_numeric() && !c.is_ascii_uppercase(),
             "Literals not allowed in this context, but found '{c}' in '{template_string}'.");
+    }
+
+    for part in &parts {
+        if parse_assignment(part).is_some() {
+            panic!("Either an input or template was missing, but found a setting instead.");
+        }
     }
 
     let value = parts[0].clone();
