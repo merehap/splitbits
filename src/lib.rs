@@ -1,3 +1,20 @@
+// TODO:
+// After 0.1.0:
+// * Create abstract syntax trees instead of quoting prematurely.
+// ** Add comments that show example macro expansion fragments.
+// ** Add optimization passes for performance and clarity.
+// ** Fix combinebits! from failing when the template width is less than an input width.
+// * Extract argument parsing.
+// * Ensure overflow behavior usability in const contexts.
+// * Add base 8, base 32, and base 64.
+// ** Add build-your-own splitbits with other Bases.
+// * Enable splitbits to fail if literal pattern not matched
+// * Allow const variable templates.
+// * Allow non-const variable templates (as a separate macro).
+// * Allow non-standard template lengths.
+// * Add splitbits_capture.
+// * Add file-level config for overflow and min.
+
 //! [![github]](https://github.com/merehap/splitbits)
 //!
 //! [github]: https://img.shields.io/badge/github-8da0cb?style=for-the-badge&labelColor=555555&logo=github
@@ -120,7 +137,7 @@
 //!   - For standard (non-ux) macros, the valid setting values are `bool` (the default), `u8`, `u16`, `u32`,
 //! `u64`, and `u128`. See examples at [`splitbits!`].
 //!   - For ux macros, the valid setting values are `bool` (the default) or `uX`, where X is
-//!   between 1 and 128. See examples at [`splitbits_ux!`].
+//!   between 1 and 128 (both inclusive). See examples at [`splitbits_ux!`].
 //! - **overflow** - sets the behavior to use if the value of an input variable is larger than the
 //! corresponding slot in the template. Used in [`combinebits!`] and [`replacebits!`]. Valid
 //! setting values are `truncate` (the default), `panic`, `corrupt`, or `saturate`.
@@ -150,24 +167,6 @@ use crate::field::Field;
 use crate::location::OnOverflow;
 use crate::template::Template;
 use crate::r#type::{Type, Precision};
-
-// TODO:
-// * Put compile checks behind different target so compiler updates don't break building.
-// After 0.1.0:
-// * Create abstract syntax trees instead of quoting prematurely.
-// ** Add comments that show example macro expansion fragments.
-// ** Add optimization passes for performance and clarity.
-// ** Fix combinebits! from failing when the template width is less than an input width.
-// * Extract argument parsing.
-// * Ensure overflow behavior usability in const contexts.
-// * Add base 8, base 32, and base 64.
-// ** Add build-your-own splitbits with other Bases.
-// * Enable splitbits to fail if literal pattern not matched
-// * Allow const variable templates.
-// * Allow non-const variable templates (as a separate macro).
-// * Allow non-standard template lengths.
-// * Add splitbits_capture.
-// * Add file-level config for overflow and min.
 
 /// Extract bit fields from an integer data type by matching against a template,
 /// storing them as fields in a generated struct.
