@@ -153,8 +153,6 @@ use crate::r#type::{Type, Precision};
 
 // TODO:
 // * Put compile checks behind different target so compiler updates don't break building.
-// * Incorrect template size test.
-// * Move macro bases to their own files.
 // After 0.1.0:
 // * Create abstract syntax trees instead of quoting prematurely.
 // ** Add comments that show example macro expansion fragments.
