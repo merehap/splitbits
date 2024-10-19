@@ -39,7 +39,7 @@
 //!
 //! Splitbits is intended for cases where [bitfield] is too heavy-weight: when you don't want to
 //! explicitly declare a new struct for data that you won't use as a return value or argument.
-//! Splitbits also provides some features that are arguably out of scope for [bitfield].
+//! Splitbits also provides some features that are arguably out of scope for bitfield.
 //!
 //! [bitfield]: https://docs.rs/bitfield/latest/bitfield/
 //!

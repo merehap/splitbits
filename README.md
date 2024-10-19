@@ -29,7 +29,7 @@ fields.
 
 Splitbits is intended for cases where [bitfield] is too heavy-weight: when you don't want to
 explicitly declare a new struct for data that you won't use as a return value or argument.
-Splitbits also provides some features that are arguably out of scope for [bitfield].
+Splitbits also provides some features that are arguably out of scope for bitfield.
 
 [bitfield]: https://docs.rs/bitfield/latest/bitfield/
 
@@ -94,43 +94,11 @@ caller has a newtype that they would like to use instead.
 just the standard types (u8, u16, u32, u64, u128, and bool). Requires the [ux] crate.
 
 [ux]: <https://docs.rs/ux/latest/ux/>
-# Template syntax
-Templates are a string of characters that represent the names and bit-placements of fields
-within an integer.
 
-Example: `"..aa bccc dddd 1010"`
+# Documentation
+Find thorough documentation of this crate and its many macro variants [here].
 
-The possible elements of a template are:
-- Names - a single letter that indicates the name of a field. (Currently only ASCII allowed.)
-- Placeholders - a period that indicates a digit that will be ignored.
-- Literals - a literal digit of the numeric base of the template (e.g. binary or hexadecimal).
-- Whitespaces - an empty space character used to make formatting more human-friendly,
-paralleling how underscores can be added to integer literals.
-
-The bits of a field are usually contiguous within a template, but they don't have to be:
-`"aabbbbaa"`. This template will interpret `a` as a single field, with no bits present between
-the halves.
-
-#### Restrictions
-- Templates (currently) must have a standard integer width (8, 16, 32, 64, or 128 bits).
-- Placeholders cannot be used in the template for [`combinebits!`], nor in the output template
-of [`splitbits_then_combine!`]. They are not meaningful in those contexts.
-- Literals (currently) cannot be used in the template for [`splitbits!`] nor the input templates
-of [`splitbits_then_combine!`]. In the future, literals could be used in these contexts for
-input validation.
-
-# Settings
-There are currently two settings that can be passed to change the behavior of the various
-macros:
-- **min** - sets the minimum size of variable that can be produced by the [`splitbits!`] family of
-macros. Must be set if you don't want booleans generated for 1-bit fields.
-  - For standard (non-ux) macros, the valid setting values are `bool` (the default), `u8`, `u16`, `u32`,
-`u64`, and `u128`. See examples at [`splitbits!`].
-  - For ux macros, the valid setting values are `bool` (the default) or `uX`, where X is
-  between 1 and 128 (both inclusive). See examples at [`splitbits_ux!`].
-- **overflow** - sets the behavior to use if the value of an input variable is larger than the
-corresponding slot in the template. Used in [`combinebits!`] and [`replacebits!`]. Valid
-setting values are `truncate` (the default), `panic`, `corrupt`, or `saturate`.
+[here]: <https://docs.rs/splitbits>
 
 # Milestones for future versions
 ### User-facing
