@@ -79,7 +79,7 @@ impl Template {
         let mut field_streams = Vec::new();
         for (name, locations) in &self.locations_by_name {
             let mut streams = self.create_field_streams(
-                *name, Box::new(name.to_ident()), locations, on_overflow);
+                *name, &name.to_ident(), locations, on_overflow);
             field_streams.append(&mut streams);
         }
 
@@ -104,7 +104,7 @@ impl Template {
         let mut field_streams = Vec::new();
         for ((name, locations), expr) in self.locations_by_name.iter().zip(exprs.iter()) {
             let mut streams = self.create_field_streams(
-                *name, Box::new(expr.clone()), locations, on_overflow);
+                *name, &expr.clone(), locations, on_overflow);
             field_streams.append(&mut streams);
         }
 
@@ -144,8 +144,8 @@ impl Template {
                 let segment = quote! { ((#width::try_from(#name #shift).unwrap()) #mask) };
                 segment_offset += location.width();
                 let field = location.place_field_segment(
-                    var.to_token_stream(),
-                    segment,
+                    &var.to_token_stream(),
+                    &segment,
                     self.width,
                     on_overflow,
                 );
@@ -177,10 +177,10 @@ impl Template {
             assert_eq!(field.width(), locations.iter().map(|l| l.width).sum(),
                 "The width of field '{n}' must match between the input templates and the output template.");
             let field = field.widen(self.width);
-            let segment = Box::new(field.to_token_stream());
             // Input and output fields having unequal lengths should fail at compile time,
             // so go with OnOverflow::Corrupt since it is the most efficient option.
-            let mut streams = self.create_field_streams(*name, segment, locations, OnOverflow::Corrupt);
+            let mut streams = self.create_field_streams(
+                *name, &field.to_token_stream(), locations, OnOverflow::Corrupt);
             field_streams.append(&mut streams);
         }
 
@@ -217,7 +217,7 @@ impl Template {
     fn create_field_streams(
         &self,
         name: Name,
-        var: Box<dyn ToTokens>,
+        var: &dyn ToTokens,
         locations: &[Location],
         on_overflow: OnOverflow,
     ) -> Vec<TokenStream> {
@@ -243,8 +243,8 @@ impl Template {
             let segment = quote! { ((#width::from(#var #shift)) #mask) };
             segment_offset += location.width();
             let field_stream = location.place_field_segment(
-                name.to_token_stream(),
-                segment,
+                &name.to_token_stream(),
+                &segment,
                 self.width,
                 on_overflow,
             );

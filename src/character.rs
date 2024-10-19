@@ -128,7 +128,7 @@ impl Characters {
         let mut uniques = BTreeSet::new();
 
         let mut names = Vec::new();
-        for character in self.0.iter() {
+        for character in &self.0 {
             if let Some(name) = character.to_name() && uniques.insert(name) {
                 names.push(name);
             }

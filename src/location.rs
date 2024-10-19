@@ -38,8 +38,8 @@ impl Location {
      */
     pub fn place_field_segment(
         self,
-        label: TokenStream,
-        segment: TokenStream,
+        label: &TokenStream,
+        segment: &TokenStream,
         width: Type,
         on_overflow: OnOverflow,
     ) -> TokenStream {

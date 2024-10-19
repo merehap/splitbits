@@ -502,7 +502,7 @@ pub fn splithex_named_ux(input: proc_macro::TokenStream) -> proc_macro::TokenStr
 /// Splitting into custom defined types:
 ///
 /// Limitation - A From impl for the custom type must exist from the smallest integer type that
-/// will fit the field. For example, for AppleCount below, which wraps a `u32`, `impl From<u32> for
+/// will fit the field. For example, for `AppleCount` below, which wraps a `u32`, `impl From<u32> for
 /// AppleCount` won't work since "a" is first inferred as a `u8` (not a `u32`).
 /// ```
 /// use splitbits::splitbits_named_into;
@@ -560,8 +560,8 @@ pub fn splitbits_named_into(input: proc_macro::TokenStream) -> proc_macro::Token
 /// Splitting into custom defined types:
 ///
 /// Limitation - A From impl for the custom type must exist from the relevant ux type. For example,
-/// for AppleCount below, which wraps a `u32`, `impl From<u32> for AppleCount` won't work since "a"
-/// is first inferred as a `u3` (not a `u32`).
+/// for `AppleCount` below, which wraps a `u32`, `impl From<u32> for AppleCount` won't work since
+/// "a" is first inferred as a `u3` (not a `u32`).
 /// ```
 /// use splitbits::splitbits_named_into_ux;
 /// use ux::{u3, u5};
@@ -948,7 +948,7 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
 /// ```
 #[proc_macro]
 pub fn replacebits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    replacebits_base(input, Base::Binary)
+    replacebits_base(&input, Base::Binary)
 }
 
 /// Same as [`replacebits!`], except the digits in the template are hexadecimal rather than binary.
@@ -966,7 +966,7 @@ pub fn replacebits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// ```
 #[proc_macro]
 pub fn replacehex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    replacebits_base(input, Base::Hexadecimal)
+    replacebits_base(&input, Base::Hexadecimal)
 }
 
 fn splitbits_base(
@@ -975,7 +975,7 @@ fn splitbits_base(
     precision: Precision,
 ) -> proc_macro::TokenStream {
     let (value, template, min_size) =
-        parse_splitbits_input(input.into(), base, precision);
+        parse_splitbits_input(&input.into(), base, precision);
     let fields = template.extract_fields(&value, min_size);
 
     let struct_name = template.to_struct_name();
@@ -1003,7 +1003,7 @@ fn splitbits_named_base(
     precision: Precision,
 ) -> proc_macro::TokenStream {
     let (value, template, min_size) =
-        parse_splitbits_input(input.into(), base, precision);
+        parse_splitbits_input(&input.into(), base, precision);
     let fields = template.extract_fields(&value, min_size);
     let values: Vec<TokenStream> = fields.iter().map(Field::to_token_stream).collect();
 
@@ -1022,7 +1022,7 @@ fn splitbits_named_into_base(
     precision: Precision,
 ) -> proc_macro::TokenStream {
     let (value, template, min_size) =
-        parse_splitbits_input(input.into(), base, precision);
+        parse_splitbits_input(&input.into(), base, precision);
     let fields = template.extract_fields(&value, min_size);
     let values: Vec<TokenStream> = fields.iter().map(Field::to_token_stream).collect();
 
@@ -1101,7 +1101,7 @@ fn split_then_combine_base(input: proc_macro::TokenStream, base: Base) -> proc_m
 }
 
 fn replacebits_base(
-    input: proc_macro::TokenStream,
+    input: &proc_macro::TokenStream,
     base: Base,
 ) -> proc_macro::TokenStream {
     let parts = Parser::parse2(Punctuated::<Expr, Token![,]>::parse_terminated, input.clone().into())
@@ -1126,9 +1126,8 @@ fn replacebits_base(
     }
 
     for part in &parts {
-        if parse_assignment(part).is_some() {
-            panic!("Either an input or template was missing, but found a setting instead.");
-        }
+        assert!(parse_assignment(part).is_none(),
+            "Either an input or template was missing, but found a setting instead.");
     }
 
     let value = parts[0].clone();
@@ -1138,7 +1137,7 @@ fn replacebits_base(
 }
 
 fn parse_splitbits_input(
-    item: TokenStream,
+    item: &TokenStream,
     base: Base,
     precision: Precision,
 ) -> (Expr, Template, Option<Type>) {
@@ -1172,9 +1171,8 @@ fn parse_splitbits_input(
     }
 
     for part in &parts {
-        if parse_assignment(part).is_some() {
-            panic!("Either an input or template was missing, but found a setting instead.");
-        }
+        assert!(parse_assignment(part).is_none(),
+            "Either an input or template was missing, but found a setting instead.");
     }
 
     let value = parts[0].clone();
@@ -1198,7 +1196,7 @@ fn expr_to_ident(expr: &Expr) -> Result<String, String> {
     if let Expr::Path(path) = expr {
         path.path.get_ident()
             .ok_or_else(|| format!("Can't convert expr path to a setting component. Expr path: {path:?}"))
-            .map(|ident| ident.to_string())
+            .map(ToString::to_string)
     } else {
         Err(format!("Can't convert expr to a setting component. Expr: {expr:?}"))
     }
