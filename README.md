@@ -6,6 +6,9 @@
 [latest version]: https://img.shields.io/crates/v/splitbits?style=plastic
 [crates.io]: https://crates.io/crates/splitbits
 
+<img width="100%" alt="splitbits"
+  src="https://github.com/merehap/splitbits/blob/master/static/splitbits.jpg">
+
 Splitbits provides concise macros for extracting bits from integers and combining bits into
 integers.
 ```rust
