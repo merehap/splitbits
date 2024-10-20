@@ -110,6 +110,8 @@ Find thorough documentation of this crate and its many macro variants [here], in
 - Add file-level config for setting defaults for the overflow and min settings.
   - Will allow macro invocations to be more concise at the call-site when the default settings are not desired for a project.
 - Allow non-standard template lengths.
+- Verify that splitbits can be used in no_std environments. It seems that the package itself doesn't need to be no_std, just the generated code.
+- Add support for different endianness for inputs and outputs?
 
 ### Performance
 - Add tests that verify that the intended code for each macro is what is generated.

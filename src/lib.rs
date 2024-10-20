@@ -693,8 +693,8 @@ pub fn splithex_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::Tok
 /// assert_eq!(result,                                           0b11100000_10010000);
 /// ```
 ///
-/// If an input variable is too large for its slot, by default its top bits are truncated (but
-/// other overflow options exist).
+/// If an input variable is too large for its slot, by default its most significant bits are
+/// truncated (but other overflow options exist).
 ///
 /// These examples are deliberately overly-simple to showcase the overflow behaviors. In the real
 /// world, in these overly-simple cases, you would just use regular bit operations instead of these
@@ -915,8 +915,8 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
 /// assert_eq!(result,                    0b1010_1101);
 /// ```
 ///
-/// If an input variable is too large for its slot, by default its top bits are truncated (but
-/// other overflow options exist).
+/// If an input variable is too large for its slot, by default its most significant bits are
+/// truncated (but other overflow options exist).
 ///
 /// These examples are deliberately overly-simple to showcase the overflow behaviors. In the real
 /// world, in these overly-simple cases, you would just use regular bit operations instead of these
