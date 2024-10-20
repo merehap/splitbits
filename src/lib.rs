@@ -14,6 +14,8 @@
 // * Allow non-standard template lengths.
 // * Add splitbits_capture.
 // * Add file-level config for overflow and min.
+// * Always use overflow=corrupt for combinebits! and replacebits! if the input variable size
+// exactly matches the field slot size.
 
 //! [![github]](https://github.com/merehap/splitbits)
 //!
@@ -33,20 +35,23 @@
 //! ```
 //!
 //! # Why use splitbits?
-//! Splitbits allows you to skip tedious, error-prone bit operations, instead providing a
-//! simple, terse, and readable template format for specifying which bits correspond to which
-//! fields.
+//! Splitbits replaces tedious, error-prone bit operations with a simple template format, making it
+//! easy to map bits to fields.
 //!
-//! Splitbits is intended for cases where [bitfield] is too heavy-weight: when you don't want to
-//! explicitly declare a new struct for data that you won't use as a return value or argument.
-//! Splitbits also provides some features that are arguably out of scope for bitfield.
+//! Every operation than can be executed at compile time is. Generated code should be as efficient
+//! as hand-written bit operations.
+//!
+//! Splitbits is intended for cases where [bitfield] is too heavy-weight syntactically: when you
+//! don't want to explicitly declare a new struct for data that you won't use as a return value or
+//! argument.
 //!
 //! [bitfield]: https://docs.rs/bitfield/latest/bitfield/
 //!
 //! # The four base macros
 //! For additional examples, see each macro's page.
 //! - [`splitbits!`] - Extract bit fields out of an integer, storing them as fields of a struct.
-//!   (See example above.)
+//!   (See example above.) By default, each field will be stored in the smallest unsigned integer type
+//!   possible.
 //! - [`combinebits!`] - Combine bits of multiple integers into a single integer.
 //!   ```
 //!   use splitbits::combinebits;
@@ -83,7 +88,7 @@
 //! # Macro variants
 //! The four base macros cover all the basic functionality that this crate offers and should be
 //! sufficient for most use-cases. However, in many situations better ergonomics can be achieved by
-//! using the macro variants.
+//! using these more specialized macro variants.
 //! #### Hexadecimal
 //! All four base macros have equivalents that use hexadecimal digits for their templates rather
 //! than bits (binary digits). The variants are [`splithex!`], [`combinehex!`],
@@ -130,8 +135,10 @@
 //!   input validation.
 //!
 //! # Settings
-//! There are currently two settings that can be passed to change the behavior of the various
-//! macros:
+//! Settings can be passed as the first argument to a macro to change some behaviors from the
+//! default. Their syntax is similar to named arguments in Python: `setting_type=setting_value`.
+//!
+//! There are currently two setting types:
 //! - **min** - sets the minimum size of variable that can be produced by the [`splitbits!`] family of
 //!   macros. Must be set if you don't want booleans generated for 1-bit fields.
 //!   - For standard (non-ux) macros, the valid setting values are `bool` (the default), `u8`, `u16`, `u32`,
@@ -687,12 +694,16 @@ pub fn splithex_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::Tok
 /// ```
 ///
 /// If an input variable is too large for its slot, by default its top bits are truncated (but
-/// other options exist):
+/// other overflow options exist).
+///
+/// These examples are deliberately overly-simple to showcase the overflow behaviors. In the real
+/// world, in these overly-simple cases, you would just use regular bit operations instead of these
+/// macros.
 /// ```
 /// use splitbits::combinebits;
 ///
 /// let a: u8 = 0b0110_0001;
-/// // Equivalent of: (a & bitmask) << 1
+/// // Compiles to: (a & bitmask) << 1
 /// let result = combinebits!("0aaaaaa0");
 /// assert_eq!(result,       0b01000010);
 /// ```
@@ -702,7 +713,7 @@ pub fn splithex_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::Tok
 ///
 /// // overflow=truncate is the default behavior, so the result is the same as above.
 /// let a: u8 = 0b01100001;
-/// // Equivalent of: (a & bitmask) << 1
+/// // Compiles to: (a & bitmask) << 1
 /// let result = combinebits!(overflow=truncate, "0aaaaaa0");
 /// assert_eq!(result,                          0b01000010);
 /// ```
@@ -710,10 +721,14 @@ pub fn splithex_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::Tok
 /// ```
 /// use splitbits::combinebits;
 ///
-/// // overflow=corrupt is the most efficient option, but corrupts the bits that preceed the
+/// // overflow=corrupt is the most efficient option, but corrupts the bits that precede the
 /// // field slot if an overflow occurs.
+/// // Warning! Only use this option if you have some other way of knowing that an overflow won't
+/// // occur. If an overflow occurs, the specified template will no longer be obeyed and bits
+/// // outside the corresponding template field will be set/unset.
+/// // To increase safety here, ux input types can be used.
 /// let a: u8 = 0b01100001;
-/// // Equivalent of: a << 1
+/// // Compiles to: a << 1
 /// let result = combinebits!(overflow=corrupt, "0aaaaaa0");
 /// assert_eq!(result,                         0b11000010);
 /// ```
@@ -723,7 +738,7 @@ pub fn splithex_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::Tok
 ///
 /// // overflow=saturate sets all the bits of the field to 1s if an overflow occurs.
 /// let a: u8 = 0b01100001;
-/// // Equivalent of: min(a << 1, mask)
+/// // Compiles to: min(a << 1, mask)
 /// let result = combinebits!(overflow=saturate, "0aaaaaa0");
 /// assert_eq!(result,                          0b01111110);
 /// ```
@@ -733,7 +748,7 @@ pub fn splithex_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::Tok
 ///
 /// // overflow=panic results in a panic if the input variable doesn't fit in its template slot.
 /// let a: u8 = 0b01100001;
-/// // Equivalent of: assert!((a << 1) <= mask)
+/// // Compiles to: assert!((a << 1) <= mask)
 /// let _ = combinebits!(overflow=panic, "0aaaaaa0");
 /// ```
 #[proc_macro]
@@ -811,7 +826,9 @@ pub fn combinehex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// assert_eq!(output, 0b1111_0101_0000_0010);
 /// ```
 ///
-/// An input field can be split into segments by the output template:
+/// ### More complicated, niche use-cases
+///
+/// An input field can be split into chunks by the output template:
 /// ```
 /// use splitbits::splitbits_then_combine;
 ///
@@ -819,17 +836,20 @@ pub fn combinehex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 ///     0b1111_0000, "aaaa aa..",
 ///     0b1011_1111, "..bb bbbb",
 ///                  "aaab bbbb b000 1aaa",
+/// //       1st chunk^^^    2nd chunk^^^
 /// );
 /// assert_eq!(output, 0b1111_1111_1000_1100);
 /// ```
 ///
-/// Segments of a field can be combined from different input locations into a single output field.
+/// Chunks of a field can be combined from different input locations into a single output field.
 /// ```
 /// use splitbits::splitbits_then_combine;
 ///
 /// let output = splitbits_then_combine!(
 ///     0b1111_0000, "aaaa ..aa",
+/// //       1st chunk^^^^   ^^2nd chunk
 ///     0b0011_1010, "..aa bbbb",
+/// //         3rd chunk^^
 ///                  "aaaa aaaa 0000 bbbb",
 /// );
 /// assert_eq!(output, 0b1111_0011_0000_1010);
@@ -896,12 +916,16 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
 /// ```
 ///
 /// If an input variable is too large for its slot, by default its top bits are truncated (but
-/// other options exist):
+/// other overflow options exist).
+///
+/// These examples are deliberately overly-simple to showcase the overflow behaviors. In the real
+/// world, in these overly-simple cases, you would just use regular bit operations instead of these
+/// macros.
 /// ```
 /// use splitbits::replacebits;
 ///
 /// let a: u8 = 0b01100001;
-/// // Equivalent of: (a & mask) << 1
+/// // Compiles to: (a & mask) << 1
 /// let result = replacebits!(0b00110000, "0aaaaaa0");
 /// assert_eq!(result,                   0b01000010);
 /// ```
@@ -911,7 +935,7 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
 ///
 /// // overflow=truncate is the default behavior, so the result is the same as above.
 /// let a: u8 = 0b01100001;
-/// // Equivalent of: (a & mask) << 1
+/// // Compiles to: (a & mask) << 1
 /// let result = replacebits!(overflow=truncate, 0b00110000, "0aaaaaa0");
 /// assert_eq!(result,                                      0b01000010);
 /// ```
@@ -921,8 +945,12 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
 ///
 /// // overflow=corrupt is the most efficient option, but corrupts the bits that preceed the
 /// // field slot if an overflow occurs.
+/// // Warning! Only use this option if you have some other way of knowing that an overflow won't
+/// // occur. If an overflow occurs, the specified template will no longer be obeyed and bits
+/// // outside the corresponding template field will be set/unset.
+/// // To increase safety here, ux input types can be used.
 /// let a: u8 = 0b01100001;
-/// // Equivalent of: a << 1
+/// // Compiles to: a << 1
 /// let result = replacebits!(overflow=corrupt, 0b00110000, "0aaaaaa0");
 /// assert_eq!(result,                                     0b11000010);
 /// ```
@@ -932,7 +960,7 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
 ///
 /// // overflow=saturate sets all the bits of the field to 1s if an overflow occurs.
 /// let a: u8 = 0b01100001;
-/// // Equivalent of: min(a << 1, mask)
+/// // Compiles to: min(a << 1, mask)
 /// let result = replacebits!(overflow=saturate, 0b00110000, "0aaaaaa0");
 /// assert_eq!(result,                                      0b01111110);
 /// ```
@@ -942,7 +970,7 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
 ///
 /// // overflow=panic results in a panic if the input variable doesn't fit in its template slot.
 /// let a: u8 = 0b01100001;
-/// // Equivalent of: assert!((a << 1) <= mask))
+/// // Compiles to: assert!((a << 1) <= mask))
 /// let _ = replacebits!(overflow=panic, 0b01100010, "0aaaaaa0");
 /// ```
 #[proc_macro]

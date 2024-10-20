@@ -23,20 +23,23 @@ assert_eq!(fields.b, 0b10000);
 ```
 
 # Why use splitbits?
-Splitbits allows you to skip tedious, error-prone bit operations, instead providing a
-simple, terse, and readable template format for specifying which bits correspond to which
-fields.
+Splitbits replaces tedious, error-prone bit operations with a simple template format, making it
+easy to map bits to fields.
 
-Splitbits is intended for cases where [bitfield] is too heavy-weight: when you don't want to
-explicitly declare a new struct for data that you won't use as a return value or argument.
-Splitbits also provides some features that are arguably out of scope for bitfield.
+Every operation than can be executed at compile time is. Generated code should be as efficient
+as hand-written bit operations.
+
+Splitbits is intended for cases where [bitfield] is too heavy-weight syntactically: when you
+don't want to explicitly declare a new struct for data that you won't use as a return value or
+argument.
 
 [bitfield]: https://docs.rs/bitfield/latest/bitfield/
 
 # The four base macros
 For additional examples, see each macro's page.
 - [splitbits!] - Extract bit fields out of an integer, storing them as fields of a struct.
-(See example above.)
+(See example above.) By default, each field will be stored in the smallest unsigned integer type
+possible.
 - [combinebits!] - Combine bits of multiple integers into a single integer.
   ```rust
   use splitbits::combinebits;
@@ -73,7 +76,7 @@ into a single integer.
 # Macro variants
 The four base macros cover all the basic functionality that this crate offers and should be
 sufficient for most use-cases. However, in many situations better ergonomics can be achieved by
-using the macro variants.
+using these more specialized macro variants.
 #### Hexadecimal
 All four base macros have equivalents that use hexadecimal digits for their templates rather
 than bits (binary digits). The variants are [splithex!], [combinehex!],
@@ -107,6 +110,15 @@ Find thorough documentation of this crate and its many macro variants [here], in
 - Add file-level config for setting defaults for the overflow and min settings.
   - Will allow macro invocations to be more concise at the call-site when the default settings are not desired for a project.
 - Allow non-standard template lengths.
+
+### Performance
+- Add tests that verify that the intended code for each macro is what is generated.
+  - Verify at the generated rust level.
+  - Verify at the assembly level
+    - Is the generated splitbits! struct elided or are we taking a performance hit?
+    - Will be difficult due to different CPU architectures and instruction sets.
+- Remove all chained shift operations where possible
+- Always use overflow=corrupt for combinebits! and replacebits! if the input variable size exactly matches the field slot size.
 
 ### Code quality
 - Represent output as a syntax tree before final code generation.
