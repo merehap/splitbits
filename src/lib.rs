@@ -756,7 +756,7 @@ pub fn splithex_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::Tok
 /// ```
 ///
 /// ### overflow=panic
-/// Results in a panic if the input variable overflows its slot.
+/// Results in a panic if "a" overflows its slot.
 /// ```should_panic
 /// use splitbits::combinebits;
 ///
@@ -891,8 +891,8 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
     split_then_combine_base(input, Base::Hexadecimal)
 }
 
-/// Replace the bits in an integer with bits from other variables, as specified by a template.
-/// Placeholders (periods) mark bits that will not be replaced.
+/// Replace some of the bits in an integer with bits from other variables, as specified by a
+/// template. Placeholders (periods) mark bits that will not be replaced.
 ///
 /// Limitation: Currently this macro doesn't take input variables as parameters, they must be
 /// captured from single-letter variables.
@@ -904,9 +904,9 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
 /// let c: u128 = 0b0101;
 /// let d = true;
 ///
-/// let input = 0b1111_1111_0000_0000;
-/// let output = replacebits!(input, "aaab bbbb .d.. cccc");
-/// assert_eq!(output,              0b1010_0001_0100_0101);
+/// let original = 0b1111_1111_0000_0000;
+/// let replaced = replacebits!(original, "aaab bbbb .d.. cccc");
+/// assert_eq!(replaced,                 0b1010_0001_0100_0101);
 /// ```
 ///
 /// Literals can be placed in the template to override specific bits:
@@ -997,7 +997,7 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
 /// ```
 ///
 /// ### overflow=panic
-/// Results in a panic if the input variable overflows its slot.
+/// Results in a panic if "a" overflows its slot.
 /// ```should_panic
 /// use splitbits::replacebits;
 ///
