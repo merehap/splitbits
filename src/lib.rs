@@ -911,20 +911,18 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
 /// ```
 /// use splitbits::replacebits;
 ///
-/// let a: u16 = 0b101;
-/// let b: u8 = 0b01;
-/// let result = replacebits!(0b10000001, "aaa11bb0");
-/// assert_eq!(result,                   0b10111010);
+/// let a: u16 = 0b10;
+/// let result = replacebits!(0b10000001, "aa.11..0");
+/// assert_eq!(result,                   0b10011000);
 /// ```
 ///
 /// Input variables can be split across multiple template slots:
 /// ```
 /// use splitbits::replacebits;
 ///
-/// let a: u16 = 0b101101;
-/// let b: u8 = 0b01;
-/// let result = replacebits!(0b1111_1111, "aaab baaa");
-/// assert_eq!(result,                    0b1010_1101);
+/// let a: u16 = 0b101;
+/// let result = replacebits!(0b1111_1111, "a... ..aa");
+/// assert_eq!(result,                    0b1111_1101);
 /// ```
 ///
 /// # Field overflow behavior
