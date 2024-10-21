@@ -36,11 +36,11 @@
 //!
 //! # Why use splitbits?
 //! Splitbits replaces tedious, error-prone bit operations with a simple template format, making it
-//! easy to map bits to fields.
-//!
+//! easy to extract bits into variables.
+//! 
 //! Every operation than can be executed at compile time is. Generated code should be as efficient
 //! as hand-written bit operations.
-//!
+//! 
 //! Splitbits is intended for cases where [bitfield] is too heavy-weight syntactically: when you
 //! don't want to explicitly declare a new struct for data that you won't use as a return value or
 //! argument.

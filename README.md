@@ -25,7 +25,7 @@ assert_eq!(fields.b, 0b10000);
 
 # Why use splitbits?
 Splitbits replaces tedious, error-prone bit operations with a simple template format, making it
-easy to map bits to fields.
+easy to extract bits into variables.
 
 Every operation than can be executed at compile time is. Generated code should be as efficient
 as hand-written bit operations.
