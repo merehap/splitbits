@@ -14,10 +14,11 @@ Minimal magic.
 ```rust
 use splitbits::splitbits;
 
-// Parse the template provided ("aaabbbbb"), apply it to the input, then generate a struct
-// populated with the bit field values.
+// Parse the template ("aaabbbbb"), apply it to the input,
+// then generate a struct populated with the bit field values.
 let fields = splitbits!(0b11110000, "aaabbbbb");
-// Single-letter field names, generated from the unique letters in the template above.
+// Single-letter field names,
+// generated from the unique letters in the template above.
 assert_eq!(fields.a, 0b111);
 assert_eq!(fields.b, 0b10000);
 ```
