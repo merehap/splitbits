@@ -704,7 +704,8 @@ pub fn splithex_named_into_ux(input: proc_macro::TokenStream) -> proc_macro::Tok
 /// in the template is only 6 bits wide. So "a" is too large, causing its first '1' bit to overflow.
 ///
 /// ### Default behavior (no overflow setting specified)
-/// Truncate the most significant bits of the field when an overflow occurs.
+/// Truncate the most significant bits of the field when an overflow occurs so the field still
+/// fits.
 /// ```
 /// use splitbits::combinebits;
 ///
@@ -891,6 +892,7 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
 }
 
 /// Replace the bits in an integer with bits from other variables, as specified by a template.
+/// Placeholders (periods) mark bits that will not be replaced.
 ///
 /// Limitation: Currently this macro doesn't take input variables as parameters, they must be
 /// captured from single-letter variables.
@@ -936,42 +938,49 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
 /// in the template is only 6 bits wide. So "a" is too large, causing its first '1' bit to overflow.
 ///
 /// ### Default behavior (no overflow setting specified)
-/// Truncate the most significant bits of the field when an overflow occurs.
+/// Truncate the most significant bits of the field when an overflow occurs so that the field still
+/// fits.
 /// ```
 /// use splitbits::replacebits;
 ///
+/// let original: u8 = 0b00001000;
+///
 /// let a: u8 = 0b01100001;
-/// // Compiles to: (a << 1) & 0b01111110
-/// let result = replacebits!(0b00110000, "0aaaaaa0");
-/// assert_eq!(result,                   0b01000010);
+/// // Compiles to: ((a << 1) & 0b01111110) | (target & 0b10000001)
+/// let replaced = replacebits!(original, ".aaaaaa.");
+/// assert_eq!(replaced,                 0b01000010);
 /// ```
 ///
 /// ### overflow=truncate (same as default behavior)
 /// ```
 /// use splitbits::replacebits;
 ///
+/// let original: u8 = 0b00001000;
+///
 /// let a: u8 = 0b01100001;
-/// // Compiles to: (a << 1) & 0b01111110
-/// let result = replacebits!(overflow=truncate, 0b00110000, "0aaaaaa0");
-/// assert_eq!(result,                                      0b01000010);
+/// // Compiles to: ((a << 1) & 0b01111110) | (target & 0b10000001)
+/// let replaced = replacebits!(overflow=truncate, original, ".aaaaaa.");
+/// assert_eq!(replaced,                                    0b01000010);
 /// ```
 ///
 /// ### overflow=corrupt
 /// The most efficient option, but corrupts the bits that precede the slot if an overflow occurs.
 ///
 /// **Warning!** Only use this option if you have some other way of knowing that an overflow won't
-/// occur. If an overflow occurs, the specified template will no longer be obeyed and bits
-/// outside the corresponding template field will be set/unset.
+/// occur. If an overflow occurs, bits that the template indicates will not be replaced, will be.
 ///
 /// To increase safety here, ux input types can be used.
 /// ```
 /// use splitbits::replacebits;
+///
+/// let original: u8 = 0b00001000;
+///
 /// let a: u8 = 0b01100001;
-/// // Compiles to: a << 1
-/// let result = replacebits!(overflow=corrupt, 0b00110000, "0aaaaaa0");
-/// // The most significant bit is incorrectly set, despite being zeroed out in the template, due
-/// // to an invalidly large value assigned to "a" by the caller.
-/// assert_eq!(result,                                     0b11000010);
+/// // Compiles to: (a << 1) | (target & 0b10000001)
+/// let replaced = replacebits!(overflow=corrupt, original, ".aaaaaa.");
+/// // The most significant bit is replaced, despite the template indicating that should not be,
+/// // due to an invalidly large value assigned to "a" by the caller.
+/// assert_eq!(replaced,                                   0b11000010);
 /// ```
 ///
 /// ### overflow=saturate
@@ -979,10 +988,12 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
 /// ```
 /// use splitbits::replacebits;
 ///
+/// let original: u8 = 0b00001000;
+///
 /// let a: u8 = 0b01100001;
-/// // Compiles to: min(a << 1, 0b01111110)
-/// let result = replacebits!(overflow=saturate, 0b00110000, "0aaaaaa0");
-/// assert_eq!(result,                                      0b01111110);
+/// // Compiles to: min(a << 1, 0b01111110) | (target & 0b10000001)
+/// let replaced = replacebits!(overflow=saturate, original, ".aaaaaa.");
+/// assert_eq!(replaced,                                    0b01111110);
 /// ```
 ///
 /// ### overflow=panic
@@ -990,9 +1001,11 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
 /// ```should_panic
 /// use splitbits::replacebits;
 ///
+/// let original: u8 = 0b00001000;
+///
 /// let a: u8 = 0b01100001;
 /// // Compiles to: assert!((a << 1) <= 0b01111110))
-/// let _ = replacebits!(overflow=panic, 0b01100010, "0aaaaaa0");
+/// let _ = replacebits!(overflow=panic, original, ".aaaaaa.");
 /// ```
 #[proc_macro]
 pub fn replacebits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
