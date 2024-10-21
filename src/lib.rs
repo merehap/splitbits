@@ -946,7 +946,7 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
 /// let original: u8 = 0b00001000;
 ///
 /// let a: u8 = 0b01100001;
-/// // Compiles to: ((a << 1) & 0b01111110) | (target & 0b10000001)
+/// // Compiles to: ((a << 1) & 0b01111110) | (original & 0b10000001)
 /// let replaced = replacebits!(original, ".aaaaaa.");
 /// assert_eq!(replaced,                 0b01000010);
 /// ```
@@ -958,7 +958,7 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
 /// let original: u8 = 0b00001000;
 ///
 /// let a: u8 = 0b01100001;
-/// // Compiles to: ((a << 1) & 0b01111110) | (target & 0b10000001)
+/// // Compiles to: ((a << 1) & 0b01111110) | (original & 0b10000001)
 /// let replaced = replacebits!(overflow=truncate, original, ".aaaaaa.");
 /// assert_eq!(replaced,                                    0b01000010);
 /// ```
@@ -976,7 +976,7 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
 /// let original: u8 = 0b00001000;
 ///
 /// let a: u8 = 0b01100001;
-/// // Compiles to: (a << 1) | (target & 0b10000001)
+/// // Compiles to: (a << 1) | (original & 0b10000001)
 /// let replaced = replacebits!(overflow=corrupt, original, ".aaaaaa.");
 /// // The most significant bit is replaced, despite the template indicating that should not be,
 /// // due to an invalidly large value assigned to "a" by the caller.
@@ -991,7 +991,7 @@ pub fn splithex_then_combine(input: proc_macro::TokenStream) -> proc_macro::Toke
 /// let original: u8 = 0b00001000;
 ///
 /// let a: u8 = 0b01100001;
-/// // Compiles to: min(a << 1, 0b01111110) | (target & 0b10000001)
+/// // Compiles to: min(a << 1, 0b01111110) | (original & 0b10000001)
 /// let replaced = replacebits!(overflow=saturate, original, ".aaaaaa.");
 /// assert_eq!(replaced,                                    0b01111110);
 /// ```
