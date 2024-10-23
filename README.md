@@ -113,6 +113,7 @@ Find thorough documentation of this crate and its many macro variants [here], in
 - Allow non-standard template lengths.
 - Verify that splitbits can be used in no_std environments. It seems that the package itself doesn't need to be no_std, just the generated code.
 - Add support for different endianness for inputs and outputs?
+- Achieve feature parity with https://github.com/porglezomp/bitmatch
 
 ### Performance
 - Add tests that verify that the intended code for each macro is what is generated.

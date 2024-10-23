@@ -16,6 +16,7 @@
 // * Add file-level config for overflow and min.
 // * Always use overflow=corrupt for combinebits! and replacebits! if the input variable size
 // exactly matches the field slot size.
+// * Add new macro for single field extraction, disable splitbits_named! for that case.
 
 //! [![github]](https://github.com/merehap/splitbits)
 //!

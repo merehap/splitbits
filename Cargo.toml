@@ -8,7 +8,7 @@ readme = "README.md"
 documentation = "https://docs.rs/splitbits"
 repository = "https://github.com/merehap/splitbits.git"
 description = "Concise bit field extraction"
-keywords = ["bitfields", "bits", "splitbits"]
+keywords = ["bitfields", "bitpacking", "bits", "macro", "splitbits"]
 categories = ["rust-patterns", "parser-implementations"]
 
 [lib]
