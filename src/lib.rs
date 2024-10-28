@@ -18,6 +18,7 @@
 // exactly matches the field slot size.
 // * Add new macro for single field extraction, disable splitbits_named! for that case.
 // * Support min=usize through try_from.
+// * Add splitbits_direct! - No return value, just creates the variables with no enclosing struct.
 
 //! [![github]](https://github.com/merehap/splitbits)
 //!
