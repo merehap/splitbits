@@ -19,6 +19,7 @@
 // * Add new macro for single field extraction, disable splitbits_named! for that case.
 // * Support min=usize through try_from.
 // * Add splitbits_direct! - No return value, just creates the variables with no enclosing struct.
+// * Make splitbits_then_combine! split out any fields not contained in the output template.
 
 //! [![github]](https://github.com/merehap/splitbits)
 //!
